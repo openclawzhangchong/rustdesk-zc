@@ -135,10 +135,14 @@ pub fn global_init() -> bool {
 
 pub fn global_clean() {}
 
-/// ZC custom build: prefill our self-hosted server on first run.
-/// Only fills empty options so user-side overrides keep working;
-/// set_option persists to the config file, so this is a one-time seed.
+/// ZC custom build (智策远控 zcdesk): brand as 智策远控 and prefill our
+/// self-hosted server on first run. Only fills empty options so user-side
+/// overrides keep working; set_option persists to the config file.
+/// Setting APP_NAME also makes lang.rs replace "RustDesk" in UI strings.
 fn zc_seed_default_server() {
+    if hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk") {
+        *hbb_common::config::APP_NAME.write().unwrap() = "智策远控".to_owned();
+    }
     const ZC_ID_SERVER: &str = "47.119.167.86";
     const ZC_RELAY_SERVER: &str = "47.119.167.86";
     const ZC_KEY: &str = "L2ksXhK9ZSS+shd3p0J10Sb2BtZGb4vqr8KBHBswF38=";
