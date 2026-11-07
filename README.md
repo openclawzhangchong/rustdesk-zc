@@ -34,9 +34,11 @@ gh workflow run zc-build.yml --ref zc-custom -f upload-tag=v1.0
 
 配套自建服务端与部署文档见私有运维仓库（内部），服务端使用官方 [rustdesk-server](https://github.com/rustdesk/rustdesk-server)（hbbs + hbbr）。
 
-## 许可
+## 源码与许可
 
-遵循上游 **AGPL-3.0** 许可证。修改与再分发请保留许可声明。
+**本仓库包含完整上游官方源码**（基线快照：rustdesk/rustdesk@3513c97，RustDesk 1.5.1）以及智策远控的全部修改——任何构建产物对应的完整源码均以本仓库为准。
+
+遵循上游 **AGPL-3.0** 许可证。修改与再分发请保留许可声明与上游署名。
 
 ---
 Powered by RustDesk · Rebuilt by 智策AI研发团队
