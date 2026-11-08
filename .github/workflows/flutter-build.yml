@@ -358,6 +358,7 @@ jobs:
       - name: Install vcpkg dependencies
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
+          X_VCPKG_ASSET_SOURCES: x-script,bash ${{ github.workspace }}/.github/scripts/vcpkg-asset-fetch.sh {url} {dst}
         run: |
           if ! $VCPKG_ROOT/vcpkg \
             install \
@@ -735,6 +736,7 @@ jobs:
       - name: Install vcpkg dependencies
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
+          X_VCPKG_ASSET_SOURCES: x-script,bash ${{ github.workspace }}/.github/scripts/vcpkg-asset-fetch.sh {url} {dst}
         run: |
           if ! $VCPKG_ROOT/vcpkg \
             install \
