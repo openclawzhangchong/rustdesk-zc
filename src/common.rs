@@ -206,7 +206,17 @@ fn zc_seed_brand_defaults() {
         );
     }
 
-    if !Config::has_permanent_password() {
+    // 安装态鉴权在服务进程里，而 MSI 在 InstallFinalize 用 asyncNoWait 拉起两个 UI
+    // 进程（res/msi/Package/Components/RustDesk.wxs:65-66）。三方同时播种会各生成
+    // 一个密码互相覆盖，服务内存里认的就和卡片显示的不是同一串。
+    // 所以只有拥有鉴权的进程才播：服务自己，或服务没在跑时（便携/服务已停）的当前进程。
+    #[cfg(windows)]
+    let owns_auth = std::env::args().any(|a| a == "--service")
+        || !crate::platform::windows::is_self_service_running();
+    #[cfg(not(windows))]
+    let owns_auth = true;
+
+    if owns_auth && !Config::has_permanent_password() {
         let pw = Config::get_auto_password(ZC_PERMANENT_PASSWORD_LEN);
         if !pw.is_empty() && Config::set_permanent_password(&pw) {
             LocalConfig::set_option(ZC_PERMANENT_PASSWORD_HINT.to_owned(), pw);
