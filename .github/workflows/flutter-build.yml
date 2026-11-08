@@ -217,6 +217,8 @@ jobs:
           LLVM_PREFIX="$(cygpath -m "$PWD/llvm")"
           "$MAMBA_EXE" create -y -p "$LLVM_PREFIX" -c conda-forge "libclang=15.0.7"
           LLVM_BIN="$LLVM_PREFIX/Library/bin"
+          test -f "$(cygpath -u "$LLVM_BIN")/libclang-13.dll"
+          cp "$(cygpath -u "$LLVM_BIN")/libclang-13.dll" "$(cygpath -u "$LLVM_BIN")/libclang.dll"
           test -f "$(cygpath -u "$LLVM_BIN")/libclang.dll"
           echo "LLVM_PATH=$LLVM_BIN" >> $GITHUB_ENV
           echo "LIBCLANG_PATH=$LLVM_BIN" >> $GITHUB_ENV
