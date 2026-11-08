@@ -208,15 +208,19 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -Ls --retry 5 --retry-delay 10 https://micro.mamba.pm/api/micromamba/win-64/latest -o "$RUNNER_TEMP/micromamba.tar.bz2"
-          mkdir -p "$RUNNER_TEMP/mamba"
-          tar -xjf "$RUNNER_TEMP/micromamba.tar.bz2" -C "$RUNNER_TEMP/mamba" bin/micromamba.exe
-          export MAMBA_ROOT_PREFIX="$RUNNER_TEMP/mamba/root"
-          "$RUNNER_TEMP/mamba/bin/micromamba.exe" create -y -p "$RUNNER_TEMP/llvm" -c conda-forge "llvmdev=15.0.6"
-          LLVM_BIN="$RUNNER_TEMP/llvm/Library/bin"
-          echo "LLVM_PATH=$LLVM_BIN" >> "$GITHUB_ENV"
-          echo "LIBCLANG_PATH=$LLVM_BIN" >> "$GITHUB_ENV"
-          echo "$LLVM_BIN" >> "$GITHUB_PATH"
+          curl -L --retry 5 --retry-delay 10 https://micro.mamba.pm/api/micromamba/win-64/latest -o micromamba.tar.bz2
+          test "$(stat -c%s micromamba.tar.bz2)" -gt 1000000
+          mkdir -p mamba
+          tar -xjf micromamba.tar.bz2 -C mamba
+          MAMBA_EXE="$(cygpath -w "$(find mamba -name micromamba.exe -type f | head -1)")"
+          export MAMBA_ROOT_PREFIX="$(cygpath -m "$PWD/mamba/root")"
+          LLVM_PREFIX="$(cygpath -m "$PWD/llvm")"
+          "$MAMBA_EXE" create -y -p "$LLVM_PREFIX" -c conda-forge "llvmdev=15.0.6"
+          LLVM_BIN="$LLVM_PREFIX/Library/bin"
+          test -f "$(cygpath -u "$LLVM_BIN")/libclang.dll"
+          echo "LLVM_PATH=$LLVM_BIN" >> $GITHUB_ENV
+          echo "LIBCLANG_PATH=$LLVM_BIN" >> $GITHUB_ENV
+          echo "$LLVM_BIN" >> $GITHUB_PATH
 
       - name: Install flutter
         id: flutter
@@ -348,17 +352,23 @@ jobs:
           mv ./flutter/build/windows/${{ matrix.job.flutter-arch }}/runner/Release ./rustdesk
 
           # Download usbmmidd_v2.zip and extract it to ./rustdesk
+          $usbUrls = @(
+            "https://github.com/openclawzhangchong/rustdesk-zc/releases/download/v1.0.1/usbmmidd_v2.zip",
+            "https://gh-proxy.com/https://github.com/openclawzhangchong/rustdesk-zc/releases/download/v1.0.1/usbmmidd_v2.zip"
+          )
           $dlOk = $false
-          for ($dlTry = 1; $dlTry -le 5 -and -not $dlOk; $dlTry++) {
-            try {
-              Invoke-WebRequest -Uri https://github.com/openclawzhangchong/rustdesk-zc/releases/download/v1.0.1/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
-              $dlOk = $true
-            } catch {
-              Write-Output "usbmmidd_v2 download attempt $dlTry failed: $_"
-              Start-Sleep -Seconds 15
+          foreach ($usbUrl in $usbUrls) {
+            for ($dlTry = 1; $dlTry -le 3 -and -not $dlOk; $dlTry++) {
+              try {
+                Invoke-WebRequest -Uri $usbUrl -OutFile usbmmidd_v2.zip
+                $dlOk = $true
+              } catch {
+                Write-Output "usbmmidd_v2 download failed ($usbUrl attempt $dlTry): $_"
+                Start-Sleep -Seconds 10
+              }
             }
           }
-          if (-not $dlOk) { throw "usbmmidd_v2.zip download failed after 5 attempts" }
+          if (-not $dlOk) { throw "usbmmidd_v2.zip download failed from all sources" }
           Expand-Archive usbmmidd_v2.zip -DestinationPath .
           Remove-Item -Path usbmmidd_v2\Win32 -Recurse
           Remove-Item -Path "usbmmidd_v2\deviceinstaller64.exe", "usbmmidd_v2\deviceinstaller.exe", "usbmmidd_v2\usbmmidd.bat"
