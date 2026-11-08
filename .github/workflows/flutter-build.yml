@@ -339,7 +339,17 @@ jobs:
           mv ./flutter/build/windows/${{ matrix.job.flutter-arch }}/runner/Release ./rustdesk
 
           # Download usbmmidd_v2.zip and extract it to ./rustdesk
-          Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
+          $dlOk = $false
+          for ($dlTry = 1; $dlTry -le 5 -and -not $dlOk; $dlTry++) {
+            try {
+              Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
+              $dlOk = $true
+            } catch {
+              Write-Output "usbmmidd_v2 download attempt $dlTry failed: $_"
+              Start-Sleep -Seconds 15
+            }
+          }
+          if (-not $dlOk) { throw "usbmmidd_v2.zip download failed after 5 attempts" }
           Expand-Archive usbmmidd_v2.zip -DestinationPath .
           Remove-Item -Path usbmmidd_v2\Win32 -Recurse
           Remove-Item -Path "usbmmidd_v2\deviceinstaller64.exe", "usbmmidd_v2\deviceinstaller.exe", "usbmmidd_v2\usbmmidd.bat"
@@ -683,7 +693,7 @@ jobs:
           mv ./target/release/rustdesk.exe ./Release/rustdesk.exe
           curl -LJ -o ./Release/sciter.dll https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
           echo "output_folder=./Release" >> $GITHUB_OUTPUT
-          curl -LJ -o ./usbmmidd_v2.zip https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip
+          curl -LJ --retry 5 --retry-delay 15 --retry-all-errors -o ./usbmmidd_v2.zip https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip
           unzip usbmmidd_v2.zip
           # Do not remove x64 files, because the user may run the 32bit version on a 64bit system.
           # Do not remove ./usbmmidd_v2/deviceinstaller64.exe, as x86 exe cannot install and uninstall drivers when running on x64,
