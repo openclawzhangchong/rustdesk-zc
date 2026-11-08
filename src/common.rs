@@ -122,6 +122,7 @@ impl Drop for SimpleCallOnReturn {
 
 pub fn global_init() -> bool {
     zc_seed_default_server();
+    zc_seed_brand_defaults();
     #[cfg(all(target_os = "linux", feature = "drm"))]
     crate::platform::linux::dispatch_wayland_display_probe();
     #[cfg(target_os = "linux")]
@@ -170,6 +171,45 @@ fn zc_seed_default_server() {
     ] {
         if hbb_common::config::Config::get_option(k).is_empty() {
             hbb_common::config::Config::set_option(k.to_owned(), v.to_owned());
+        }
+    }
+}
+
+/// 5 位取自 hbb_common 的 CHARS，其中已排除 0/1/l/o，电话里念给对方不会错。
+const ZC_PERMANENT_PASSWORD_LEN: usize = 5;
+/// 固定密码只以 storage+salt 保存、读不回明文，卡片要回显就得另存一份副本。
+pub const ZC_PERMANENT_PASSWORD_HINT: &str = "zc-pw-hint";
+
+/// ZC custom build: 出厂即用永久固定密码，并打开"设置→其他"里希望默认勾选的开关。
+/// 和 zc_seed_default_server 一样只填未设置的值，用户改过的保留。
+fn zc_seed_brand_defaults() {
+    // 打洞三项虽带 enable- 前缀，但 get_local_option 在非公网中继下把空值当 "N"，
+    // 必须显式写 "Y" 才真正生效。
+    const ZC_DEFAULT_LOCAL_OPTS: [&str; 6] = [
+        "allow-multi-edge-toolbar-dock",
+        "enable-udp-punch",
+        "enable-ipv6-punch",
+        "enable-webrtc",
+        "allow-sync-clipboard-between-sessions",
+        "allow-monitor-switch-main-toolbar",
+    ];
+    for k in ZC_DEFAULT_LOCAL_OPTS {
+        if LocalConfig::get_option(k).is_empty() {
+            LocalConfig::set_option(k.to_owned(), "Y".to_owned());
+        }
+    }
+
+    if Config::get_option("verification-method").is_empty() {
+        Config::set_option(
+            "verification-method".to_owned(),
+            "use-permanent-password".to_owned(),
+        );
+    }
+
+    if !Config::has_permanent_password() {
+        let pw = Config::get_auto_password(ZC_PERMANENT_PASSWORD_LEN);
+        if !pw.is_empty() && Config::set_permanent_password(&pw) {
+            LocalConfig::set_option(ZC_PERMANENT_PASSWORD_HINT.to_owned(), pw);
         }
     }
 }
@@ -3141,6 +3181,31 @@ mod tests {
         self,
         time::{interval, interval_at, sleep, Duration, Instant, Interval},
     };
+
+    /// The seeded permanent password has to stay acceptable to the Flutter password
+    /// dialog's length rule; if the two drift apart, first-run users end up with a
+    /// password the app itself refuses to re-save.
+    #[test]
+    fn zc_permanent_password_is_five_alphanumeric_chars_and_varies() {
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..8 {
+            let pw = Config::get_auto_password(ZC_PERMANENT_PASSWORD_LEN);
+            assert_eq!(
+                pw.chars().count(),
+                ZC_PERMANENT_PASSWORD_LEN,
+                "unexpected length: {pw:?}"
+            );
+            assert!(
+                pw.chars().all(|c| c.is_ascii_alphanumeric()),
+                "non-alphanumeric char in {pw:?}"
+            );
+            seen.insert(pw);
+        }
+        assert!(
+            seen.len() > 1,
+            "generator handed back the same password 8 times"
+        );
+    }
 
     #[test]
     fn relay_uuid_rejects_control_bytes_but_not_other_id_formats() {

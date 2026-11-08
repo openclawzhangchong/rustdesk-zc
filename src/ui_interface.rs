@@ -702,7 +702,16 @@ pub fn set_permanent_password_with_result(password: String) -> bool {
     }
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
+        let hint = password.clone();
         match crate::ipc::set_permanent_password_with_ack(password) {
+            Ok(true) => {
+                // 固定密码本身只存 storage+salt，卡片回显靠这份副本跟着走。
+                LocalConfig::set_option(
+                    crate::common::ZC_PERMANENT_PASSWORD_HINT.to_owned(),
+                    hint,
+                );
+                true
+            }
             Ok(ok) => ok,
             Err(err) => {
                 log::warn!("Failed to set permanent password via IPC: {err}");
