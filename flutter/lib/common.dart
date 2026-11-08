@@ -3064,7 +3064,9 @@ String getWindowName({WindowType? overrideType}) {
   final name = bind.mainGetAppNameSync();
   switch (overrideType ?? kWindowType) {
     case WindowType.Main:
-      return name;
+      // 首页标题带产品版本号，用户不用进设置就能确认自己装的是哪一版。
+      // 会话窗口不加，避免 "对方ID - 智策远控 v1.0.3" 这种噪音。
+      return '$name $kZcProductVersion';
     case WindowType.FileTransfer:
       return "File Transfer - $name";
     case WindowType.ViewCamera:

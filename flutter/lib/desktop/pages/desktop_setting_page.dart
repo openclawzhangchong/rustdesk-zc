@@ -2603,6 +2603,10 @@ class _AboutState extends State<_About> {
                 height: 8.0,
               ),
               SelectionArea(
+                  child: Text(
+                      '${translate('Product Version')}: $kZcProductVersion')
+                      .marginSymmetric(vertical: 4.0)),
+              SelectionArea(
                   child: Text('${translate('Version')}: $version')
                       .marginSymmetric(vertical: 4.0)),
               SelectionArea(
