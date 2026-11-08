@@ -276,13 +276,35 @@ jobs:
         run: |
           flutter doctor -v
           flutter precache --windows
-          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
-          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          mv -Force windows-x64-release/*  C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+          $engineUrls = @(
+            "https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip",
+            "https://gh-proxy.com/https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip"
+          )
+          $dlOk = $false
+          foreach ($u in $engineUrls) {
+            for ($dlTry = 1; $dlTry -le 3 -and -not $dlOk; $dlTry++) {
+              try {
+                Invoke-WebRequest -Uri $u -OutFile windows-x64-release.zip
+                $dlOk = $true
+              } catch {
+                Write-Output "engine download failed ($u attempt $dlTry): $_"
+                Start-Sleep -Seconds 10
+              }
+            }
+          }
+          if (-not $dlOk) {
+            Write-Output "::warning::custom engine unavailable (GitHub outage), continuing with stock 3.24.5 engine"
+            Write-Output "ENGINE_REPLACED=false" >> $env:GITHUB_ENV
+          } else {
+            Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
+            mv -Force windows-x64-release/*  C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+            Write-Output "ENGINE_REPLACED=true" >> $env:GITHUB_ENV
+          }
 
       - name: Patch flutter
         # x64 stays on Flutter 3.24.5, which needs the dropdown filter patch.
         # arm64 is on Flutter 3.44 (patched separately below) and does not use this patch.
+        # 引擎降级（stock）时补丁照打：纯框架 Dart 修复，与引擎无关。
         if: ${{ matrix.job.arch == 'x86_64' }}
         shell: bash
         run: |
