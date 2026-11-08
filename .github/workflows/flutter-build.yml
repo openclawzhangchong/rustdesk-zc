@@ -340,6 +340,8 @@ jobs:
           set -e
           # git 服务正常，仅 release 下载 CDN 故障：clone 后用自家 VPS 的 vcpkg.exe，
           # 免去 bootstrap.ps1 对 github release 的下载依赖
+          # 注意：runner 自带预装 vcpkg 在 C:\vcpkg，先清场
+          rm -rf C:/vcpkg
           git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
           cd C:/vcpkg
           git -c advice.detachedHead=false checkout ${{ env.VCPKG_COMMIT_ID }}
@@ -710,6 +712,8 @@ jobs:
           set -e
           # git 服务正常，仅 release 下载 CDN 故障：clone 后用自家 VPS 的 vcpkg.exe，
           # 免去 bootstrap.ps1 对 github release 的下载依赖
+          # 注意：runner 自带预装 vcpkg 在 C:\vcpkg，先清场
+          rm -rf C:/vcpkg
           git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
           cd C:/vcpkg
           git -c advice.detachedHead=false checkout ${{ env.VCPKG_COMMIT_ID }}
