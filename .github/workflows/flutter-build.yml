@@ -334,12 +334,19 @@ jobs:
         with:
           prefix-key: ${{ matrix.job.os }}
 
-      - name: Setup vcpkg with Github Actions binary cache
-        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
-        with:
-          vcpkgDirectory: C:\vcpkg
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
-          doNotCache: false
+      - name: Setup vcpkg (self-hosted tool via VPS, outage-proof)
+        shell: bash
+        run: |
+          set -e
+          # git 服务正常，仅 release 下载 CDN 故障：clone 后用自家 VPS 的 vcpkg.exe，
+          # 免去 bootstrap.ps1 对 github release 的下载依赖
+          git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
+          cd C:/vcpkg
+          git -c advice.detachedHead=false checkout ${{ env.VCPKG_COMMIT_ID }}
+          curl -L --retry 5 --retry-delay 10 "https://zcdesk.jiuyeke.cn/deps/vcpkg.exe" -o vcpkg.exe
+          test "$(stat -c%s vcpkg.exe)" -gt 1000000
+          ./vcpkg version
+          echo "VCPKG_ROOT=C:/vcpkg" >> $GITHUB_ENV
 
       - name: Install vcpkg dependencies
         env:
@@ -377,6 +384,7 @@ jobs:
 
           # Download usbmmidd_v2.zip and extract it to ./rustdesk
           $usbUrls = @(
+            "https://zcdesk.jiuyeke.cn/deps/usbmmidd_v2.zip",
             "https://github.com/openclawzhangchong/rustdesk-zc/releases/download/v1.0.1/usbmmidd_v2.zip",
             "https://gh-proxy.com/https://github.com/openclawzhangchong/rustdesk-zc/releases/download/v1.0.1/usbmmidd_v2.zip"
           )
@@ -696,12 +704,19 @@ jobs:
         with:
           prefix-key: ${{ matrix.job.os }}-sciter
 
-      - name: Setup vcpkg with Github Actions binary cache
-        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
-        with:
-          vcpkgDirectory: C:\vcpkg
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
-          doNotCache: false
+      - name: Setup vcpkg (self-hosted tool via VPS, outage-proof)
+        shell: bash
+        run: |
+          set -e
+          # git 服务正常，仅 release 下载 CDN 故障：clone 后用自家 VPS 的 vcpkg.exe，
+          # 免去 bootstrap.ps1 对 github release 的下载依赖
+          git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
+          cd C:/vcpkg
+          git -c advice.detachedHead=false checkout ${{ env.VCPKG_COMMIT_ID }}
+          curl -L --retry 5 --retry-delay 10 "https://zcdesk.jiuyeke.cn/deps/vcpkg.exe" -o vcpkg.exe
+          test "$(stat -c%s vcpkg.exe)" -gt 1000000
+          ./vcpkg version
+          echo "VCPKG_ROOT=C:/vcpkg" >> $GITHUB_ENV
 
       - name: Install vcpkg dependencies
         env:
