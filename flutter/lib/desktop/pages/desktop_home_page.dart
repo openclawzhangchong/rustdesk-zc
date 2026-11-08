@@ -291,9 +291,13 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   buildPasswordBoard2(BuildContext context, ServerModel model) {
     RxBool refreshHover = false.obs;
     RxBool editHover = false.obs;
+    RxBool revealed = false.obs;
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
     final showOneTime = model.approveMode != 'click' &&
         model.verificationMethod != kUsePermanentPassword;
+    // 固定密码模式下卡片本来什么都不显示，这里显示播种/改密码留下的副本。
+    final showPermanent =
+        model.showsPermanentPassword && model.serverPasswd.text != '-';
     return Container(
       margin: EdgeInsets.only(left: 20.0, right: 16, top: 13, bottom: 13),
       child: Row(
@@ -312,7 +316,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AutoSizeText(
-                    translate("One-time Password"),
+                    translate(showPermanent
+                        ? "Permanent Password"
+                        : "One-time Password"),
                     style: TextStyle(
                         fontSize: 14, color: textColor?.withOpacity(0.5)),
                     maxLines: 1,
@@ -322,24 +328,40 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       Expanded(
                         child: GestureDetector(
                           onDoubleTap: () {
-                            if (showOneTime) {
+                            if (showOneTime || showPermanent) {
                               Clipboard.setData(
                                   ClipboardData(text: model.serverPasswd.text));
                               showToast(translate("Copied"));
                             }
                           },
-                          child: TextFormField(
-                            controller: model.serverPasswd,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.only(top: 14, bottom: 10),
-                            ),
-                            style: TextStyle(fontSize: 15),
-                          ).workaroundFreezeLinuxMint(),
+                          child: Obx(
+                            () => TextFormField(
+                              controller: model.serverPasswd,
+                              readOnly: true,
+                              obscureText: showPermanent && !revealed.value,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                contentPadding:
+                                    EdgeInsets.only(top: 14, bottom: 10),
+                              ),
+                              style: TextStyle(fontSize: 15),
+                            ).workaroundFreezeLinuxMint(),
+                          ),
                         ),
                       ),
+                      if (showPermanent)
+                        InkWell(
+                          onTap: () => revealed.value = !revealed.value,
+                          child: Tooltip(
+                            message: translate('Show/Hide Password'),
+                            child: Obx(() => Icon(
+                                revealed.value
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: textColor?.withOpacity(0.5),
+                                size: 22)),
+                          ).marginOnly(right: 8, top: 4),
+                        ),
                       if (showOneTime)
                         AnimatedRotationWidget(
                           onPressed: () => bind.mainUpdateTemporaryPassword(),
@@ -900,12 +922,10 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
   final presetPassword = permanentPasswordSet && !localPasswordSet;
   var canSubmit = false;
   final RxString rxPass = "".obs;
+  // 只卡长度：出厂播种的 5 位码取自 CHARS（小写字母+数字，且可能整串都是字母），
+  // 保留数字/大写那几条会让应用自己生成的密码过不了自己的校验。
   final rules = [
-    DigitValidationRule(),
-    UppercaseValidationRule(),
-    LowercaseValidationRule(),
-    // SpecialCharacterValidationRule(),
-    MinCharactersValidationRule(8),
+    MinCharactersValidationRule(5),
   ];
   final maxLength = bind.mainMaxEncryptLen();
   final statusTip = localPasswordSet
