@@ -334,20 +334,25 @@ jobs:
         with:
           prefix-key: ${{ matrix.job.os }}
 
-      - name: Setup vcpkg (self-hosted tool via VPS, outage-proof)
+      - name: Setup vcpkg (runner pre-installed, pinned; VPS fallback)
         shell: bash
         run: |
           set -e
-          # git 服务正常，仅 release 下载 CDN 故障：clone 后用自家 VPS 的 vcpkg.exe，
-          # 免去 bootstrap.ps1 对 github release 的下载依赖
-          # 注意：runner 自带预装 vcpkg 在 C:\vcpkg，先清场
-          rm -rf C:/vcpkg
-          git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
-          cd C:/vcpkg
-          git -c advice.detachedHead=false checkout ${{ env.VCPKG_COMMIT_ID }}
-          curl -L --retry 5 --retry-delay 10 "https://zcdesk.jiuyeke.cn/deps/vcpkg.exe" -o vcpkg.exe
-          test "$(stat -c%s vcpkg.exe)" -gt 1000000
-          ./vcpkg version
+          # 首选：runner 镜像自带 C:\vcpkg（含可用 vcpkg.exe），对齐 pinned commit 的 ports 树
+          # 兜底：从自家 VPS 下载 vcpkg.exe（sha256 校验），彻底不依赖 bootstrap 下载
+          EXPECTED_SHA="8797d2bad1de118384a8da2695bebb18564890f05b2734d472df5b743dea16f6"
+          if [ -f /c/vcpkg/vcpkg.exe ]; then
+            echo "使用 runner 预装 vcpkg"
+            git -C /c/vcpkg checkout ${{ env.VCPKG_COMMIT_ID }} 2>/dev/null \
+              || echo "WARN: pinned checkout 失败，沿用 runner 自带 ports 树"
+          else
+            echo "预装不存在，从 VPS 下载 vcpkg.exe"
+            mkdir -p /c/vcpkg
+            curl -L --retry 5 --retry-delay 10 "https://zcdesk.jiuyeke.cn/deps/vcpkg.exe" -o /c/vcpkg/vcpkg.exe
+            ACTUAL_SHA=$(sha256sum /c/vcpkg/vcpkg.exe | awk '{print $1}')
+            test "$ACTUAL_SHA" = "$EXPECTED_SHA" || { echo "SHA 不匹配: $ACTUAL_SHA"; exit 1; }
+          fi
+          test -f /c/vcpkg/vcpkg.exe
           echo "VCPKG_ROOT=C:/vcpkg" >> $GITHUB_ENV
 
       - name: Install vcpkg dependencies
@@ -706,20 +711,25 @@ jobs:
         with:
           prefix-key: ${{ matrix.job.os }}-sciter
 
-      - name: Setup vcpkg (self-hosted tool via VPS, outage-proof)
+      - name: Setup vcpkg (runner pre-installed, pinned; VPS fallback)
         shell: bash
         run: |
           set -e
-          # git 服务正常，仅 release 下载 CDN 故障：clone 后用自家 VPS 的 vcpkg.exe，
-          # 免去 bootstrap.ps1 对 github release 的下载依赖
-          # 注意：runner 自带预装 vcpkg 在 C:\vcpkg，先清场
-          rm -rf C:/vcpkg
-          git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
-          cd C:/vcpkg
-          git -c advice.detachedHead=false checkout ${{ env.VCPKG_COMMIT_ID }}
-          curl -L --retry 5 --retry-delay 10 "https://zcdesk.jiuyeke.cn/deps/vcpkg.exe" -o vcpkg.exe
-          test "$(stat -c%s vcpkg.exe)" -gt 1000000
-          ./vcpkg version
+          # 首选：runner 镜像自带 C:\vcpkg（含可用 vcpkg.exe），对齐 pinned commit 的 ports 树
+          # 兜底：从自家 VPS 下载 vcpkg.exe（sha256 校验），彻底不依赖 bootstrap 下载
+          EXPECTED_SHA="8797d2bad1de118384a8da2695bebb18564890f05b2734d472df5b743dea16f6"
+          if [ -f /c/vcpkg/vcpkg.exe ]; then
+            echo "使用 runner 预装 vcpkg"
+            git -C /c/vcpkg checkout ${{ env.VCPKG_COMMIT_ID }} 2>/dev/null \
+              || echo "WARN: pinned checkout 失败，沿用 runner 自带 ports 树"
+          else
+            echo "预装不存在，从 VPS 下载 vcpkg.exe"
+            mkdir -p /c/vcpkg
+            curl -L --retry 5 --retry-delay 10 "https://zcdesk.jiuyeke.cn/deps/vcpkg.exe" -o /c/vcpkg/vcpkg.exe
+            ACTUAL_SHA=$(sha256sum /c/vcpkg/vcpkg.exe | awk '{print $1}')
+            test "$ACTUAL_SHA" = "$EXPECTED_SHA" || { echo "SHA 不匹配: $ACTUAL_SHA"; exit 1; }
+          fi
+          test -f /c/vcpkg/vcpkg.exe
           echo "VCPKG_ROOT=C:/vcpkg" >> $GITHUB_ENV
 
       - name: Install vcpkg dependencies
