@@ -410,6 +410,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
           path: rustdesk
 
@@ -459,6 +460,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: rustdesk-unsigned-packer-template-${{ matrix.job.arch }}
           path: ./packer-template
           if-no-files-found: error
@@ -545,6 +547,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: rustdesk-unsigned-msi-template-${{ matrix.job.arch }}
           path: ./msi-template
 
@@ -558,6 +561,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true' && env.SIGN_BASE_URL != '-2'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: windows-flutter-${{ matrix.job.arch }}-exe
           path: ./SignOutput/zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
           if-no-files-found: error
@@ -566,6 +570,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true' && env.SIGN_BASE_URL != '-2'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: windows-flutter-${{ matrix.job.arch }}-msi
           path: ./SignOutput/zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           if-no-files-found: error
@@ -706,6 +711,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
           path: Release
 
@@ -755,6 +761,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: rustdesk-unsigned-packer-template-${{ matrix.job.arch }}
           path: ./packer-template
           if-no-files-found: error
@@ -780,6 +787,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true' && env.SIGN_BASE_URL != '-2'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: windows-sciter-x86-exe
           path: ./SignOutput/zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.exe
           if-no-files-found: error
@@ -887,6 +895,7 @@ jobs:
       - name: Upload liblibrustdesk.a Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: liblibrustdesk.a
           path: target/aarch64-apple-ios/release/liblibrustdesk.a
 
@@ -1144,6 +1153,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: rustdesk-unsigned-macos-${{ matrix.job.arch }}
           path: zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg # can not upload the directory directly or tar.gz, which destroy the link structure, causing the codesign failed
 
@@ -1192,6 +1202,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true' && env.MACOS_P12_BASE64 != null
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: macos-${{ matrix.job.arch }}-dmg
           path: ./zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
           if-no-files-found: error
@@ -1592,6 +1603,7 @@ jobs:
       - name: Upload Rustdesk library to Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: librustdesk.so.${{ matrix.job.target }}
           path: ./target/${{ matrix.job.target }}/release/liblibrustdesk.so
 
@@ -1673,6 +1685,7 @@ jobs:
         if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
           path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
 
@@ -1858,6 +1871,7 @@ jobs:
         if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
           path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
 
@@ -2546,6 +2560,7 @@ jobs:
         if: always() && env.DRM_DEB != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
           name: ${{ env.DRM_DEB }}
           path: ${{ env.DRM_DEB }}
 
