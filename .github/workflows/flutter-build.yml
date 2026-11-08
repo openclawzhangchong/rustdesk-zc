@@ -204,10 +204,19 @@ jobs:
           name: ${{ matrix.job.arch == 'aarch64' && 'bridge-artifact-flutter-3.44' || 'bridge-artifact' }}
           path: ./
 
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0 # v2.0.9
-        with:
-          version: ${{ env.LLVM_VERSION }}
+      - name: Install LLVM and Clang (conda-forge, GitHub-release-independent)
+        shell: bash
+        run: |
+          set -e
+          curl -Ls --retry 5 --retry-delay 10 https://micro.mamba.pm/api/micromamba/win-64/latest -o "$RUNNER_TEMP/micromamba.tar.bz2"
+          mkdir -p "$RUNNER_TEMP/mamba"
+          tar -xjf "$RUNNER_TEMP/micromamba.tar.bz2" -C "$RUNNER_TEMP/mamba" bin/micromamba.exe
+          export MAMBA_ROOT_PREFIX="$RUNNER_TEMP/mamba/root"
+          "$RUNNER_TEMP/mamba/bin/micromamba.exe" create -y -p "$RUNNER_TEMP/llvm" -c conda-forge "llvmdev=15.0.6"
+          LLVM_BIN="$RUNNER_TEMP/llvm/Library/bin"
+          echo "LLVM_PATH=$LLVM_BIN" >> "$GITHUB_ENV"
+          echo "LIBCLANG_PATH=$LLVM_BIN" >> "$GITHUB_ENV"
+          echo "$LLVM_BIN" >> "$GITHUB_PATH"
 
       - name: Install flutter
         id: flutter
@@ -342,7 +351,7 @@ jobs:
           $dlOk = $false
           for ($dlTry = 1; $dlTry -le 5 -and -not $dlOk; $dlTry++) {
             try {
-              Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
+              Invoke-WebRequest -Uri https://github.com/openclawzhangchong/rustdesk-zc/releases/download/v1.0.1/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
               $dlOk = $true
             } catch {
               Write-Output "usbmmidd_v2 download attempt $dlTry failed: $_"
@@ -693,7 +702,7 @@ jobs:
           mv ./target/release/rustdesk.exe ./Release/rustdesk.exe
           curl -LJ -o ./Release/sciter.dll https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
           echo "output_folder=./Release" >> $GITHUB_OUTPUT
-          curl -LJ --retry 5 --retry-delay 15 --retry-all-errors -o ./usbmmidd_v2.zip https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip
+          curl -LJ --retry 5 --retry-delay 15 --retry-all-errors -o ./usbmmidd_v2.zip https://github.com/openclawzhangchong/rustdesk-zc/releases/download/v1.0.1/usbmmidd_v2.zip
           unzip usbmmidd_v2.zip
           # Do not remove x64 files, because the user may run the 32bit version on a 64bit system.
           # Do not remove ./usbmmidd_v2/deviceinstaller64.exe, as x86 exe cannot install and uninstall drivers when running on x64,
