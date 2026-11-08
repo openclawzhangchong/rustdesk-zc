@@ -1,0 +1,53 @@
+﻿<!--
+This file contains the declaration of all the localizable strings.
+智策远控 (zcdesk) 简体中文本地化 —— 智策AI研发团队
+-->
+<WixLocalization Culture="zh-CN" Codepage="936"
+	xmlns="http://wixtoolset.org/schemas/v4/wxl">
+
+	<String Id="SummaryCodepage" Value="936" />
+	<String Id="ProductLanguage" Value="2052" />
+
+	<!-- General strings -->
+	<String Id="DowngradeError" Value="已安装更新版本的 [ProductName]，无法继续安装。" />
+
+	<String Id="AR_Comment" Value="智策远控" />
+
+	<String Id="F_App" Value="智策远控" />
+	<String Id="F_App_Desc" Value="智策远控 - 主程序。" />
+
+	<String Id="SC_Uninstall" Value="卸载 智策远控" />
+	<String Id="SC_Uninstall_Desc" Value="从计算机中移除 智策远控 或其部分组件。" />
+
+	<!-- Client related strings -->
+	<String Id="F_Client" Value="客户端" />
+	<String Id="F_Client_Desc" Value="用户界面程序。" />
+	<String Id="F_LAVFilters" Value="LAV Filters" />
+	<String Id="F_LAVFilters_Desc" Value="推荐的 DirectShow 滤镜，提供最佳音视频体验。" />
+
+	<String Id="SC_Client" Value="智策远控" />
+	<String Id="SC_Client_Desc" Value="启动 智策远控。" />
+
+	<String Id="SC_Client_Tray" Value="智策远控 托盘" />
+	<String Id="SC_Client_Tray_Desc" Value="启动 智策远控 托盘图标。" />
+
+	<!-- Server related strings -->
+	<String Id="F_Server" Value="服务组件" />
+	<String Id="F_Server_Desc" Value="智策远控 的服务组件，提供后台功能。" />
+
+	<String Id="Service_DisplayName" Value="智策远控 服务" />
+	<String Id="Service_Description" Value="此服务运行 智策远控 后台服务。" />
+
+	<!-- Launch Conditions -->
+	<String Id="LC_OS" Value="[ProductName] 需要 Windows 7 / 2008 R2 或更高版本操作系统。" />
+	<String Id="LC_ADMIN" Value="安装 [ProductName] 需要管理员权限。" />
+
+	<!-- User Interfaces -->
+	<String Id="AnotherAppDialogTitle" Value="取消安装。"/>
+	<String Id="AnotherAppDialogDescription" Value="检测到通过自安装方式安装的应用，请先卸载后再继续。"/>
+
+	<String Id="MyInstallDirDlgDesktopShortcuts" Value="创建桌面图标" />
+	<String Id="MyInstallDirDlgStartMenuShortcuts" Value="创建开始菜单快捷方式" />
+	<String Id="MyInstallDirDlgPrinter" Value="安装 智策远控 打印机" />
+
+</WixLocalization>

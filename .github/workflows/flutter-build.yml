@@ -496,7 +496,7 @@ jobs:
           nuget restore msi.sln
           $msiPlatform = if ('${{ matrix.job.arch }}' -eq 'aarch64') { 'ARM64' } else { 'x64' }
           msbuild msi.sln -p:Configuration=Release -p:Platform=$msiPlatform /p:TargetVersion=Windows10
-          $msi = Get-ChildItem ./Package/bin/*/Release/en-us/Package.msi | Select-Object -First 1
+          $msi = Get-ChildItem ./Package/bin/*/Release/zh-CN/Package.msi | Select-Object -First 1
           mv $msi.FullName ../../SignOutput/zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           sha256sum ../../SignOutput/zcdesk-*.msi
 
@@ -534,7 +534,7 @@ jobs:
           $msiPlatform = if ('${{ matrix.job.arch }}' -eq 'aarch64') { 'ARM64' } else { 'x64' }
           msbuild msi.sln -t:clean -p:Configuration=Release -p:Platform=$msiPlatform
           msbuild msi.sln -p:Configuration=Release -p:Platform=$msiPlatform /p:TargetVersion=Windows10
-          $msi = Get-ChildItem ./Package/bin/*/Release/en-us/Package.msi | Select-Object -First 1
+          $msi = Get-ChildItem ./Package/bin/*/Release/zh-CN/Package.msi | Select-Object -First 1
           popd
           mkdir ./msi-template
           mv $msi.FullName ./msi-template/rustdesk-template-${{ matrix.job.arch }}.msi
