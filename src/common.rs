@@ -143,6 +143,23 @@ fn zc_seed_default_server() {
     if hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk") {
         *hbb_common::config::APP_NAME.write().unwrap() = "智策远控".to_owned();
     }
+    // 品牌化开关：隐藏 "Powered by" 字样与登录/通讯录/群组入口（自建无 API，均无作用）
+    let zc_hard_opts = [
+        ("hide-powered-by-me", "Y"),
+        ("disable-ab", "Y"),
+        ("disable-account", "Y"),
+        ("disable-group-panel", "Y"),
+    ];
+    for (k, v) in zc_hard_opts {
+        hbb_common::config::BUILTIN_SETTINGS
+            .write()
+            .unwrap()
+            .insert(k.to_owned(), v.to_owned());
+        hbb_common::config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert(k.to_owned(), v.to_owned());
+    }
     const ZC_ID_SERVER: &str = "47.119.167.86";
     const ZC_RELAY_SERVER: &str = "47.119.167.86";
     const ZC_KEY: &str = "L2ksXhK9ZSS+shd3p0J10Sb2BtZGb4vqr8KBHBswF38=";
