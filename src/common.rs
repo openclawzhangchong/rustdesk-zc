@@ -206,20 +206,26 @@ fn zc_seed_brand_defaults() {
         );
     }
 
-    // 安装态鉴权在服务进程里，而 MSI 在 InstallFinalize 用 asyncNoWait 拉起两个 UI
-    // 进程（res/msi/Package/Components/RustDesk.wxs:65-66）。三方同时播种会各生成
-    // 一个密码互相覆盖，服务内存里认的就和卡片显示的不是同一串。
-    // 所以只有拥有鉴权的进程才播：服务自己，或服务没在跑时（便携/服务已停）的当前进程。
-    #[cfg(windows)]
-    let owns_auth = std::env::args().any(|a| a == "--service")
-        || !crate::platform::windows::is_self_service_running();
-    #[cfg(not(windows))]
-    let owns_auth = true;
-
-    if owns_auth && !Config::has_permanent_password() {
-        let pw = Config::get_auto_password(ZC_PERMANENT_PASSWORD_LEN);
-        if !pw.is_empty() && Config::set_permanent_password(&pw) {
-            LocalConfig::set_option(ZC_PERMANENT_PASSWORD_HINT.to_owned(), pw);
+    // MSI 在 InstallFinalize 以 asyncNoWait 拉起 LaunchApp + LaunchAppTray，与服务/托盘
+    // 并发跑 global_init。portable-service 架构下真正鉴权的是用户会话进程，靠"谁是服务"
+    // 挑播种者会挑错（壳服务不播种、托盘被跳过 → 没人播）。改为并发收敛：
+    // 先写 hint 再回读，以回读值落密码存储，同时播种的进程收敛到同一串。
+    if !Config::has_permanent_password() {
+        // 必须读盘：get_option 读的是本进程内存，看不到并发进程刚写的 hint
+        let existing_hint = LocalConfig::get_option_from_file(ZC_PERMANENT_PASSWORD_HINT);
+        let pw = if existing_hint.is_empty() {
+            let generated = Config::get_auto_password(ZC_PERMANENT_PASSWORD_LEN);
+            if generated.is_empty() {
+                return;
+            }
+            LocalConfig::set_option(ZC_PERMANENT_PASSWORD_HINT.to_owned(), generated);
+            LocalConfig::get_option_from_file(ZC_PERMANENT_PASSWORD_HINT)
+        } else {
+            // hint 在而 storage 不在：上次写盘中途退出，沿用 hint 补齐
+            existing_hint
+        };
+        if !pw.is_empty() {
+            Config::set_permanent_password(&pw);
         }
     }
 }
