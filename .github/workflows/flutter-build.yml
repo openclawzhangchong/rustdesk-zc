@@ -12,6 +12,30 @@ on:
       publish-update-metadata:
         type: boolean
         default: false
+    # 允许调用方通过 secrets: inherit 透传（Android 签名密钥等）
+    secrets:
+      ANDROID_SIGNING_KEY:
+        required: false
+      ANDROID_ALIAS:
+        required: false
+      ANDROID_KEY_STORE_PASSWORD:
+        required: false
+      ANDROID_KEY_PASSWORD:
+        required: false
+      SIGN_BASE_URL:
+        required: false
+      SIGN_SECRET_KEY:
+        required: false
+      RUSTDESK_UPDATE_ED25519_SEED:
+        required: false
+      MACOS_P12_BASE64:
+        required: false
+      MACOS_P12_PASSWORD:
+        required: false
+      MACOS_NOTARIZE_JSON:
+        required: false
+      MACOS_CODESIGN_IDENTITY:
+        required: false
 
 # NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
 # variables from this workflow!

@@ -14,6 +14,8 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/flutter-build.yml
+    # workflow_call 不会自动透传 secrets，必须 inherit 才能拿到 ANDROID_SIGNING_KEY 等
+    secrets: inherit
     with:
       upload-artifact: true
       upload-tag: ${{ inputs.upload-tag }}
