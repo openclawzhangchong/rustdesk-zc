@@ -145,12 +145,17 @@ fn zc_seed_default_server() {
         *hbb_common::config::APP_NAME.write().unwrap() = "智策远控".to_owned();
     }
     // 品牌化开关：隐藏 "Powered by" 字样与登录/通讯录/群组入口（自建无 API，均无作用）
-    let zc_hard_opts = [
+    let mut zc_hard_opts = vec![
         ("hide-powered-by-me", "Y"),
         ("disable-ab", "Y"),
         ("disable-account", "Y"),
         ("disable-group-panel", "Y"),
     ];
+    // Android 客户端：只允许控制别人，不允许被别人控制（conn-type=outgoing）
+    // 目的：① 安全（手机不可能被远程接管）② 减少杀软误报（被控能力是报毒主因）
+    // 桌面端保持双向（桌面本来就需要被控）。
+    #[cfg(target_os = "android")]
+    zc_hard_opts.push(("conn-type", "outgoing"));
     for (k, v) in zc_hard_opts {
         hbb_common::config::BUILTIN_SETTINGS
             .write()

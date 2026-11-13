@@ -12,6 +12,24 @@
 - **全新品牌**：智策远控中文名 + ZC logo + teal 配色，界面无 RustDesk 残留
 - **完整上游能力**：跨平台（Windows/macOS/Linux/Android）、P2P 直连优先、自动降级中继
 
+## ⚠️ 重要：Android 版是「单向」客户端
+
+> **Android 版（APK）只能用它去控制别人，不能被别人控制。**
+> 这是设计如此，不是功能缺失。
+
+| 端 | 连接方向 | 说明 |
+|---|---|---|
+| **Android（APK）** | **单向：只出不进** | 只能主动控制电脑/其他设备；**本机不启动被控服务，任何人无法远程连接这台手机**；界面不显示本机 ID 与密码 |
+| Windows / Linux / macOS | 双向 | 既能控制别人，也能被别人控制（远程办公/技术支持场景需要） |
+
+**为什么 Android 设成单向？**
+
+1. **安全**：手机是最私密的设备（相册、微信、银行），永不留远程后门
+2. **减少杀软误报**：远程控制类 App 被安全软件标记，主要因为它具备"被控能力"（录屏 + 注入触摸 + 后台常驻）。单向模式从设计上就排除这种可能
+3. **使用场景明确**：手机上更多是用它去操作电脑，而不是被电脑控
+
+技术实现：Android 端硬编码 `conn-type=outgoing`（RustDesk 官方支持的连接模式），在 `src/common.rs` 的 `zc_seed_default_server()` 中通过 `cfg(target_os = "android")` 条件注入，不影响桌面端。
+
 ## 软件预览
 
 ![智策远控主界面](screenshots/01-main.png)
@@ -26,6 +44,8 @@
 | 默认服务器三件套（ID/中继/Key，仅空时填充） | 同上 |
 | teal 配色主题 | `flutter/lib/common.dart` |
 | ZC logo（exe/托盘/应用内） | `res/`、`flutter/windows/runner/resources/`、`flutter/assets/` |
+| **Android 单向模式**（只能控人，不能被人控） | `src/common.rs` `zc_seed_default_server()` 中 `#[cfg(target_os = "android")] conn-type=outgoing` |
+| Android 应用名/图标/自适应底色 | `flutter/android/app/src/main/AndroidManifest.xml`、`res/mipmap-*`、`res/values/` |
 | 云打包工作流 `zcdesk-*` 产物命名 | `.github/workflows/` |
 
 ## 构建
