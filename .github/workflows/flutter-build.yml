@@ -1750,39 +1750,47 @@ jobs:
           echo "ANDROID_SIGN_TOOL_VERSION=$BUILD_TOOL_VERSION" >> $GITHUB_ENV
           echo Last build tool version is: $BUILD_TOOL_VERSION
 
-      - uses: r0adkll/sign-android-release@349ebdef58775b1e0d8099458af0816dc79b6407 # v1
-        name: Sign app APK
-        if: env.ANDROID_SIGNING_KEY != null
-        id: sign-rustdesk
-        with:
-          releaseDirectory: ./signed-apk
-          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
-          alias: ${{ secrets.ANDROID_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - name: Sign APK with zcdesk release keystore
         env:
-          # env.ANDROID_SIGN_TOOL_VERSION is set by Step "Setup sign tool version variable"
-          BUILD_TOOLS_VERSION: ${{ env.ANDROID_SIGN_TOOL_VERSION }}
-
-      - name: Upload Artifacts
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          retention-days: 1  # ZC: 构件即用即焚，防存储配额爆
-          name: zcdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
-          path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
+          KEY_B64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          KS_PASS: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_ALIAS }}
+        shell: bash
+        run: |
+          set -e
+          if [ -z "$KEY_B64" ]; then
+            echo "::warning::ANDROID_SIGNING_KEY 为空，跳过签名（发布未签名 APK）"
+            echo "APK_SIGNED=false" >> $GITHUB_ENV
+            exit 0
+          fi
+          echo "$KEY_B64" | base64 -d > release.keystore
+          SIZE=$(stat -c%s release.keystore)
+          echo "keystore 解出: $SIZE bytes"
+          test "$SIZE" -gt 1000 || { echo "::error::keystore 解码异常"; exit 1; }
+          APK=$(ls signed-apk/*.apk | head -1)
+          echo "签名目标: $APK"
+          BT=$(ls -d /usr/local/lib/android/sdk/build-tools/* | sort -V | tail -1)
+          echo "使用 apksigner: $BT/apksigner"
+          "$BT/apksigner" sign --ks release.keystore --ks-key-alias "$KS_ALIAS" \
+            --ks-pass "pass:$KS_PASS" --key-pass "pass:$KEY_PASS" \
+            --ks-type JKS --v1-signing-enabled true --v2-signing-enabled true "$APK"
+          echo "=== 签名结果 ==="
+          "$BT/apksigner" verify --print-certs "$APK" | head -4
+          rm -f release.keystore
+          echo "SIGNED_APK=$APK" >> $GITHUB_ENV
+          echo "APK_SIGNED=true" >> $GITHUB_ENV
 
       - name: Publish signed apk package
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
+        if: env.APK_SIGNED == 'true' && env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
-          files: |
-            ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
+          files: ${{ env.SIGNED_APK }}
 
       - name: Publish unsigned apk package
-        if: env.ANDROID_SIGNING_KEY == null && env.UPLOAD_ARTIFACT == 'true'
+        if: env.APK_SIGNED != 'true' && env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
