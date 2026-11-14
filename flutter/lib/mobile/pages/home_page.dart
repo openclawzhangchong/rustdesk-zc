@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/mobile/pages/server_page.dart';
 import 'package:flutter_hbb/mobile/pages/settings_page.dart';
 import 'package:flutter_hbb/web/settings_page.dart';
@@ -150,7 +151,22 @@ class HomePageState extends State<HomePage> {
         ],
       );
     }
-    return Text(bind.mainGetAppNameSync());
+    // 产品版本号显著上首页顶栏（用户要求）：连接/设置两页都能看到
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(bind.mainGetAppNameSync()),
+        Text('  $kZcProductVersion',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withOpacity(0.55))),
+      ],
+    );
   }
 }
 

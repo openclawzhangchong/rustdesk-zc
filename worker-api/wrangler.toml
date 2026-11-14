@@ -1,18 +1,21 @@
 # 智策远控 API Worker —— 登录 + 地址簿云同步
 # 契约文档：rustdesk-selfhost/docs/13-login-api-design.md
-# 部署前需先执行 `wrangler d1 create zcdesk-db`，把输出的 database_id 填到下方占位符。
+# D1 复用账户现有空库 intern-db（3266d0d7-fda9-4030-b71b-2c7b2b791ec7，无表，
+# 已在其中创建本服务 4 张表——非破坏性复用，避免账户 10 库上限删库）
 
 name = "zcdesk-api"
 main = "src/index.js"
 compatibility_date = "2025-11-01"
 workers_dev = false
 
+# 自定义域：zcdeskapi.jiuyeke.cn（部署后经 REST API 或 Dashboard 绑定）
+routes = [{ pattern = "zcdeskapi.jiuyeke.cn", custom_domain = true }]
+
 # D1 数据库绑定（Worker 代码中通过 env.DB 访问）
 [[d1_databases]]
 binding = "DB"
-database_name = "zcdesk-db"
-# 占位符：部署前替换为 `wrangler d1 create zcdesk-db` 返回的真实 database_id
-database_id = "00000000-0000-0000-0000-000000000000"
+database_name = "intern-db"
+database_id = "3266d0d7-fda9-4030-b71b-2c7b2b791ec7"
 
 # 自定义域绑定（二选一）：
 # 1) 推荐：在 Cloudflare Dashboard -> Workers & Pages -> zcdesk-api -> Settings ->
