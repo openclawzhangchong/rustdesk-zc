@@ -375,12 +375,177 @@ async function handleAbSettings(request, env) {
 // 路由
 // ---------------------------------------------------------------------------
 
+
+// ---------------------------------------------------------------------------
+// 细粒度地址簿（RustDesk 1.5.1 客户端 personal 模式增量 API）
+// 读：POST /api/ab/peers（分页 Map{total,data}）、POST /api/ab/tags/{guid}（List）
+// 写：peer/add(整Peer JSON) peer/update(局部字段合并) peer/{guid} DELETE([ids])
+//     tag/add tag/rename tag/update tag/{guid} DELETE —— 动作类 200 空体=成功
+// ---------------------------------------------------------------------------
+
+async function abPeersRead(env, userId) {
+  const rows = await env.DB
+    .prepare("SELECT data FROM ab_peers WHERE user_id = ? ORDER BY peer_id")
+    .bind(userId)
+    .all();
+  const data = (rows.results || []).map((r) => {
+    try { return JSON.parse(r.data); } catch (e) { return null; }
+  }).filter(Boolean);
+  return jsonResponse({ total: data.length, data }, 200);
+}
+
+async function handleAbPeers(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  return abPeersRead(env, userId);
+}
+
+async function handleAbTags(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  const rows = await env.DB
+    .prepare("SELECT name, color FROM ab_tags WHERE user_id = ? ORDER BY name")
+    .bind(userId)
+    .all();
+  return jsonResponse((rows.results || []).map((r) => ({ name: r.name, color: r.color })), 200);
+}
+
+async function handleAbPeerAdd(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  let peer;
+  try { peer = JSON.parse(await request.text()); } catch (e) { return errorResponse("请求格式错误", 400); }
+  if (!peer || typeof peer.id !== "string" || peer.id === "") return errorResponse("缺少 peer id", 400);
+  await env.DB
+    .prepare(
+      "INSERT INTO ab_peers (user_id, peer_id, data, updated_at) VALUES (?, ?, ?, ?) " +
+        "ON CONFLICT (user_id, peer_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
+    )
+    .bind(userId, peer.id, JSON.stringify(peer), Date.now())
+    .run();
+  return new Response(null, { status: 200 });
+}
+
+async function handleAbPeerUpdate(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  let patch;
+  try { patch = JSON.parse(await request.text()); } catch (e) { return errorResponse("请求格式错误", 400); }
+  if (!patch || typeof patch.id !== "string" || patch.id === "") return errorResponse("缺少 peer id", 400);
+  const row = await env.DB
+    .prepare("SELECT data FROM ab_peers WHERE user_id = ? AND peer_id = ?")
+    .bind(userId, patch.id)
+    .first();
+  let merged = {};
+  if (row) { try { merged = JSON.parse(row.data) || {}; } catch (e) { merged = {}; } }
+  merged = { ...merged, ...patch };
+  await env.DB
+    .prepare(
+      "INSERT INTO ab_peers (user_id, peer_id, data, updated_at) VALUES (?, ?, ?, ?) " +
+        "ON CONFLICT (user_id, peer_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
+    )
+    .bind(userId, patch.id, JSON.stringify(merged), Date.now())
+    .run();
+  return new Response(null, { status: 200 });
+}
+
+async function handleAbPeerDelete(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  let ids;
+  try { ids = JSON.parse(await request.text()); } catch (e) { ids = null; }
+  if (!Array.isArray(ids)) return errorResponse("请求格式错误", 400);
+  for (const id of ids) {
+    if (typeof id === "string" && id !== "") {
+      await env.DB.prepare("DELETE FROM ab_peers WHERE user_id = ? AND peer_id = ?").bind(userId, id).run();
+    }
+  }
+  return new Response(null, { status: 200 });
+}
+
+async function handleAbTagAdd(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  let tag;
+  try { tag = JSON.parse(await request.text()); } catch (e) { return errorResponse("请求格式错误", 400); }
+  if (!tag || typeof tag.name !== "string" || tag.name === "") return errorResponse("缺少 tag name", 400);
+  await env.DB
+    .prepare(
+      "INSERT INTO ab_tags (user_id, name, color, updated_at) VALUES (?, ?, ?, ?) " +
+        "ON CONFLICT (user_id, name) DO UPDATE SET color = excluded.color, updated_at = excluded.updated_at"
+    )
+    .bind(userId, tag.name, typeof tag.color === "number" ? tag.color : null, Date.now())
+    .run();
+  return new Response(null, { status: 200 });
+}
+
+async function handleAbTagRename(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  let body;
+  try { body = JSON.parse(await request.text()); } catch (e) { return errorResponse("请求格式错误", 400); }
+  if (!body || typeof body.old !== "string" || typeof body.new !== "string") return errorResponse("请求格式错误", 400);
+  await env.DB
+    .prepare("UPDATE ab_tags SET name = ?, updated_at = ? WHERE user_id = ? AND name = ?")
+    .bind(body.new, Date.now(), userId, body.old)
+    .run();
+  return new Response(null, { status: 200 });
+}
+
+async function handleAbTagUpdate(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  let body;
+  try { body = JSON.parse(await request.text()); } catch (e) { return errorResponse("请求格式错误", 400); }
+  if (!body || typeof body.name !== "string") return errorResponse("请求格式错误", 400);
+  await env.DB
+    .prepare("UPDATE ab_tags SET color = ?, updated_at = ? WHERE user_id = ? AND name = ?")
+    .bind(typeof body.color === "number" ? body.color : null, Date.now(), userId, body.name)
+    .run();
+  return new Response(null, { status: 200 });
+}
+
+async function handleAbTagDelete(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  let names;
+  try { names = JSON.parse(await request.text()); } catch (e) { names = null; }
+  if (!Array.isArray(names)) return errorResponse("请求格式错误", 400);
+  for (const n of names) {
+    if (typeof n === "string" && n !== "") {
+      await env.DB.prepare("DELETE FROM ab_tags WHERE user_id = ? AND name = ?").bind(userId, n).run();
+    }
+  }
+  return new Response(null, { status: 200 });
+}
+
+/** POST /api/currentUser：客户端启动时用 Bearer token 恢复登录态（UserPayload 结构） */
+async function handleCurrentUser(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  const row = await env.DB
+    .prepare("SELECT username, display_name FROM users WHERE id = ?")
+    .bind(userId)
+    .first();
+  if (!row) return errorResponse("用户不存在", 401);
+  return jsonResponse({
+    name: row.username,
+    display_name: row.display_name || "",
+    avatar: "",
+    email: "",
+    note: "",
+    status: 1,
+    is_admin: false,
+  }, 200);
+}
+
 async function route(request, env) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const method = request.method;
 
   if (path === "/api/login" && method === "POST") return handleLogin(request, env);
+  if (path === "/api/currentUser" && method === "POST") return handleCurrentUser(request, env);
   if (path === "/api/register" && method === "POST") return handleRegister(request, env);
   // 客户端登录框打开即拉第三方登录列表（user_model.dart queryOidcLoginOptions），
   // 缺此端点会 404 红字报错；返回空数组 = 无第三方登录，仅账号密码
@@ -388,11 +553,24 @@ async function route(request, env) {
   if (path === "/api/ab/personal" && method === "POST") return handleAbData(request, env);
   if (path === "/api/ab" && method === "POST") return handleAbData(request, env);
   if (path === "/api/ab/settings" && method === "POST") return handleAbSettings(request, env);
-  if (path === "/api/ab/shared/profiles" && method === "POST") return jsonResponse([], 200);
+  // 客户端 _getSharedAbProfiles 期望 {total,data} Map 结构；裸 [] 会被当 TypeError
+  if (path === "/api/ab/shared/profiles" && method === "POST")
+    return jsonResponse({ total: 0, data: [] }, 200);
   if (path === "/api/ab" && method === "GET") return jsonResponse([], 200);
 
+  // 细粒度地址簿端点（带 {guid} 路径参数，按登录用户存取，guid 仅校验非空）
+  if (path === "/api/ab/peers" && method === "POST") return handleAbPeers(request, env);
+  if (path.startsWith("/api/ab/tags/") && method === "POST") return handleAbTags(request, env);
+  if (path.startsWith("/api/ab/peer/add/") && method === "POST") return handleAbPeerAdd(request, env);
+  if (path.startsWith("/api/ab/peer/update/") && method === "POST") return handleAbPeerUpdate(request, env);
+  if (path.startsWith("/api/ab/peer/") && method === "DELETE") return handleAbPeerDelete(request, env);
+  if (path.startsWith("/api/ab/tag/add/") && method === "POST") return handleAbTagAdd(request, env);
+  if (path.startsWith("/api/ab/tag/rename/") && method === "PUT") return handleAbTagRename(request, env);
+  if (path.startsWith("/api/ab/tag/update/") && method === "PUT") return handleAbTagUpdate(request, env);
+  if (path.startsWith("/api/ab/tag/") && method === "DELETE") return handleAbTagDelete(request, env);
+
   if (KNOWN_PATHS[path]) return errorResponse("方法不允许", 405);
-  return errorResponse("接口不存在", 404);
+  return errorResponse(`接口不存在: ${path}`, 404);
 }
 
 export default {

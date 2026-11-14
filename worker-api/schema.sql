@@ -28,3 +28,19 @@ CREATE TABLE IF NOT EXISTS ab_settings (
   settings TEXT,
   updated_at INTEGER NOT NULL
 );
+
+-- 细粒度地址簿（1.5.1 客户端 personal 模式增量 API）：peers/tags 文档存储
+CREATE TABLE IF NOT EXISTS ab_peers (
+  user_id TEXT NOT NULL,
+  peer_id TEXT NOT NULL,
+  data TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, peer_id)
+);
+CREATE TABLE IF NOT EXISTS ab_tags (
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  color INTEGER,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, name)
+);

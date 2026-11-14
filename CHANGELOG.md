@@ -33,8 +33,14 @@
 - 无法注册账号：客户端没有注册界面，Worker 原先只验证不建号——已做两层：
   ① 登录框显式『注册账号』按钮（`POST /api/register`，重复注册提示"用户名已存在"）
   ② 兜底：直接点登录时未存在用户自动建号（要收紧时在 D1 预建账号并把自动注册分支改回 401）
-- 烟测脚本 `worker-api/test/api-tests.sh` 补至 15 步（新增登录选项/注册/重复注册/弱口令/
-  自动注册用例），线上全 PASS
+- **地址簿同步真正打通**（真客户端 E2E 揪出的三层缺失，已全部补齐）：
+  ① `POST /api/ab/shared/profiles` 返回结构从裸 `[]` 改为客户端期望的 `{total,data}`
+  ② 新增 1.5.1 客户端 personal 模式**细粒度增量端点** 9 个（peers 分页/tags/peer 增改删/
+     tag 增改删删，D1 新建 ab_peers/ab_tags 两表，peer/update 做字段级合并）
+  ③ 新增 `POST /api/currentUser`（客户端启动用 token 恢复登录态）
+- 烟测脚本 `worker-api/test/api-tests.sh` 补至 **17 步**（登录/注册/细粒度地址簿全链路/
+  currentUser），线上全 PASS；本机客户端实测：登录 → 自动注册 → 重启恢复登录态 →
+  地址簿面板零报错
 
 ### 版本纪律（从此固定）
 

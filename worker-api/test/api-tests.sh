@@ -26,7 +26,8 @@
 set -u
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
-TEST_USER="${TEST_USER:-13800000001}"
+# 默认每次运行用唯一用户（远端模式依赖首登自动注册即得全新空簿；也避免脏数据误报）
+TEST_USER="${TEST_USER:-zc-smoke-$(date +%s)}"
 TEST_PASS="${TEST_PASS:-123456}"
 PROVISION="${PROVISION:-1}"
 PERSIST_DIR="${PERSIST_DIR:-}"
@@ -244,7 +245,7 @@ check "响应为空列表" "[]" "$(cat "$BODY")"
 next_step "共享簿占位（POST /api/ab/shared/profiles）"
 http POST "$BASE_URL/api/ab/shared/profiles" "" "$TOKEN"
 check "HTTP 状态码" "200" "$STATUS"
-check "响应为空列表" "[]" "$(cat "$BODY")"
+check "响应为 {total,data} Map 结构（客户端 _getSharedAbProfiles 期望）" '{"total":0,"data":[]}' "$(cat "$BODY")"
 
 next_step "设置保存与读取（POST /api/ab/settings）"
 http POST "$BASE_URL/api/ab/settings" '{"max_peer_one_ab":100}' "$TOKEN"
@@ -289,6 +290,36 @@ next_step "首登自动注册（POST /api/login 未存在用户）"
 http POST "$BASE_URL/api/login" "{\"username\":\"$AU_USER\",\"password\":\"$TEST_PASS\"}"
 check "HTTP 状态码" "200" "$STATUS"
 check "access_token 存在" "0" "$(jsonget "$BODY" access_token | grep -c '<<')"
+
+# ---------------------------------------------------------------------------
+# [11] 细粒度地址簿（1.5.1 客户端 personal 模式增量 API）+ currentUser
+# ---------------------------------------------------------------------------
+next_step "细粒度 AB：加 peer / 读 peers / 改 alias 合并 / tag / 删除"
+http POST "$BASE_URL/api/ab/peer/add/$GUID" '{"id":"9000001","name":"e2e","tags":[]}' "$TOKEN"
+check "peer/add 200 空体" "200" "$STATUS"
+http POST "$BASE_URL/api/ab/peers?ab=$GUID" "" "$TOKEN"
+check "peers 返回 Map{total,data}" "200" "$STATUS"
+check "peers total=1" "1" "$(jsonget "$BODY" total)"
+node -e 'require("fs").writeFileSync(process.argv[1], JSON.stringify({id:"9000001",alias:"改名了"}), "utf8")' "$WORK/alias.json"
+http POST "$BASE_URL/api/ab/peer/update/$GUID" "@$WORK/alias.json" "$TOKEN"
+check "peer/update 200" "200" "$STATUS"
+http POST "$BASE_URL/api/ab/peers?ab=$GUID" "" "$TOKEN"
+check "update 后 alias 已合并" "改名了" "$(jsonget "$BODY" data.0.alias)"
+check "update 未丢原字段 name" "e2e" "$(jsonget "$BODY" data.0.name)"
+http POST "$BASE_URL/api/ab/tag/add/$GUID" '{"name":"测试标签","color":1}' "$TOKEN"
+check "tag/add 200" "200" "$STATUS"
+http POST "$BASE_URL/api/ab/tags/$GUID" "" "$TOKEN"
+check "tags 返回 List 含 1 项" "1" "$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).length)' "$BODY")"
+http DELETE "$BASE_URL/api/ab/peer/$GUID" '["9000001"]' "$TOKEN"
+check "peer DELETE 200" "200" "$STATUS"
+http POST "$BASE_URL/api/ab/peers?ab=$GUID" "" "$TOKEN"
+check "删除后 total=0" "0" "$(jsonget "$BODY" total)"
+
+next_step "currentUser（token 恢复登录态）"
+http POST "$BASE_URL/api/currentUser" '{"id":"","uuid":""}' "$TOKEN"
+check "HTTP 状态码" "200" "$STATUS"
+check "name = 测试用户" "$TEST_USER" "$(jsonget "$BODY" name)"
+check "status = 1 (正常)" "1" "$(jsonget "$BODY" status)"
 
 echo "=== 完成：$((STEP)) 步，$FAILURES 个失败 ==="
 exit $([ "$FAILURES" -eq 0 ] && echo 0 || echo 1)
