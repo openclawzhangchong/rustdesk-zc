@@ -598,7 +598,6 @@ jobs:
       - name: Build pre-built MSI template
         # ZC: 企业部署模板（RDAPPNAM 占位符机制）非本项目交付物，跳过。
         # 跳过原因：改名 exe 后模板步骤的 mv 期望 rustdesk.exe 已不存在会失败。
-        if: false
         # Two things this works around: preprocess.py rewrites res/msi in place, so the
         # tree is reset around this second variant; and it locates the app as
         # <app-name>.exe inside the dist, so the dist copy is renamed to match.
@@ -616,7 +615,7 @@ jobs:
         # Building the arm64 template on the native arm64 runner makes the ARM
         # package available: the build agents are x64 and cannot run
         # preprocess.py against an ARM exe.
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: false # ZC: 企业部署模板非交付物，且改名 exe 后其 mv 必失败
         run: |
           git checkout -- res/msi
           cp -r ./rustdesk ./rustdesk-msi-template
