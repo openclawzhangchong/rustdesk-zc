@@ -23,6 +23,11 @@ worker-api/
 | `POST /api/ab/settings` | 带 JSON 体=保存设置（200 空体）；空体=读取当前设置（客户端 `_getAbSettings` 以空体 POST 读取，需返回 JSON 对象） |
 | `POST /api/ab/shared/profiles` | MVP 不支持共享簿，固定 200 `[]` |
 | `GET /api/ab` | legacy 兜底，固定 200 `[]` |
+| `POST /api/ab/peers?ab={guid}` | 细粒度：分页读 peers，`{total,data:[Peer...]}` |
+| `POST /api/ab/tags/{guid}` | 细粒度：读标签，`[{name,color}]` |
+| `POST /api/ab/peer/add\|update/{guid}`、`DELETE /api/ab/peer/{guid}` | 细粒度：peer 增（整 JSON）/改（局部字段合并）/删（[ids]），200 空体 |
+| `POST /api/ab/tag/add/{guid}`、`PUT tag/rename\|update/{guid}`、`DELETE /api/ab/tag/{guid}` | 细粒度：标签增改删，200 空体 |
+| `POST /api/currentUser` | Bearer token 恢复登录态，返回 UserPayload（name/display_name/status=1） |
 
 认证：`Authorization: Bearer <access_token>`；token 存 `tokens` 表，30 天过期；
 失效一律 401 `{error:"..."}`。密码 PBKDF2-SHA256（crypto.subtle，10 万迭代）+ 16 字节
