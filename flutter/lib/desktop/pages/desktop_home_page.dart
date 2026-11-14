@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
+import 'package:flutter_hbb/common/widgets/login.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
@@ -92,6 +93,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       buildTip(context),
       if (!isOutgoingOnly) buildIDBoard(context),
       if (!isOutgoingOnly) buildPasswordBoard(context),
+      if (!isOutgoingOnly) buildAccountBoard(context),
       FutureBuilder<Widget>(
         future: Future.value(
             Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
@@ -183,6 +185,96 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       color: Theme.of(context).scaffoldBackgroundColor,
       child: ConnectionPage(),
     );
+  }
+
+  /// 账户区（用户要求）：已登录显示用户名+登出；未登录显示登录/注册按钮
+  Widget buildAccountBoard(BuildContext context) {
+    final textColor = Theme.of(context).textTheme.titleLarge?.color;
+    final secondaryColor = Theme.of(context).textTheme.bodySmall?.color;
+    return Obx(() {
+      final loggedIn = gFFI.userModel.isLogin;
+      final name = gFFI.userModel.displayNameOrUserName;
+      return Container(
+        margin: const EdgeInsets.only(left: 20, right: 11, top: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 2,
+              decoration: const BoxDecoration(color: MyTheme.accent),
+            ).marginOnly(top: 5),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 7),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      translate("Account"),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodySmall?.color),
+                    ),
+                    if (loggedIn)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Icon(Icons.account_circle,
+                                size: 18, color: MyTheme.accent),
+                            Expanded(
+                              child: Text(
+                                name,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 13, color: textColor),
+                              ).marginOnly(left: 4),
+                            ),
+                            InkWell(
+                              onTap: () => gFFI.userModel.logOut(),
+                              child: Text(
+                                translate("Logout"),
+                                style: TextStyle(
+                                    fontSize: 12, color: secondaryColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => loginDialog(),
+                                child: Text(
+                                  translate("Login"),
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => loginDialog(),
+                                child: Text(
+                                  translate("Create Account"),
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   buildIDBoard(BuildContext context) {
