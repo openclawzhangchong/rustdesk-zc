@@ -539,6 +539,13 @@ async function handleCurrentUser(request, env) {
   }, 200);
 }
 
+/** 群组面板三端点：MVP 无组织/设备组，返回空集（Map{total,data} 为客户端分页解析约定） */
+async function handleGroupEmpty(request, env) {
+  const userId = await authenticate(request, env);
+  if (!userId) return errorResponse("登录已过期，请重新登录", 401);
+  return jsonResponse({ total: 0, data: [] }, 200);
+}
+
 async function route(request, env) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -546,6 +553,10 @@ async function route(request, env) {
 
   if (path === "/api/login" && method === "POST") return handleLogin(request, env);
   if (path === "/api/currentUser" && method === "POST") return handleCurrentUser(request, env);
+  // 群组面板：users / peers / device-group/accessible 全部空集（否则客户端红条"获取组信息失败"）
+  if (path === "/api/users" && method === "GET") return handleGroupEmpty(request, env);
+  if (path === "/api/peers" && method === "GET") return handleGroupEmpty(request, env);
+  if (path === "/api/device-group/accessible" && method === "GET") return handleGroupEmpty(request, env);
   if (path === "/api/register" && method === "POST") return handleRegister(request, env);
   // 客户端登录框打开即拉第三方登录列表（user_model.dart queryOidcLoginOptions），
   // 缺此端点会 404 红字报错；返回空数组 = 无第三方登录，仅账号密码

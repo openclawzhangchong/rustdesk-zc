@@ -321,5 +321,12 @@ check "HTTP 状态码" "200" "$STATUS"
 check "name = 测试用户" "$TEST_USER" "$(jsonget "$BODY" name)"
 check "status = 1 (正常)" "1" "$(jsonget "$BODY" status)"
 
+next_step "群组面板三端点（users/peers/device-group 空集）"
+for EP in "users?current=1&pageSize=100&accessible=&status=1" "peers?current=1&pageSize=100" "device-group/accessible?current=1&pageSize=100"; do
+  http GET "$BASE_URL/api/$EP" "" "$TOKEN"
+  check "GET /api/$EP 200" "200" "$STATUS"
+  check "  Map{total,data} 空集" '{"total":0,"data":[]}' "$(cat "$BODY")"
+done
+
 echo "=== 完成：$((STEP)) 步，$FAILURES 个失败 ==="
 exit $([ "$FAILURES" -eq 0 ] && echo 0 || echo 1)
