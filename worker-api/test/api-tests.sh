@@ -19,8 +19,9 @@
 #   PERSIST_DIR  wrangler 本地状态目录；若 wrangler dev 用了 --persist-to，
 #                这里传同一个目录，保证 d1 execute --local 读写同一个库
 #
-# 说明：契约未定义注册接口，"注册测试用户"通过 wrangler d1 execute 直接写
-#       users 表完成（PBKDF2-SHA256 / 10 万迭代 / 随机盐，与 Worker 算法一致）。
+# 说明：远端模式下登录/注册接口可自给自足（服务端支持首登自动注册与显式注册），
+#       本地模式仍通过 wrangler d1 execute 直接写 users 表完成预置
+#       （PBKDF2-SHA256 / 10 万迭代 / 随机盐，与 Worker 算法一致）。
 # ---------------------------------------------------------------------------
 set -u
 
@@ -31,7 +32,7 @@ PROVISION="${PROVISION:-1}"
 PERSIST_DIR="${PERSIST_DIR:-}"
 
 WORKER_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DB_NAME="zcdesk-db"
+DB_NAME="${DB_NAME:-intern-db}"  # 与 wrangler.toml 的 d1_databases.database_name 一致
 
 command -v curl >/dev/null || { echo "需要 curl"; exit 1; }
 command -v node >/dev/null || { echo "需要 node"; exit 1; }
@@ -252,6 +253,42 @@ http POST "$BASE_URL/api/ab/settings" "" "$TOKEN"
 check "读取 HTTP 状态码" "200" "$STATUS"
 check "读回设置" '{"max_peer_one_ab":100}' "$(cat "$BODY")"
 echo
+
+# ---------------------------------------------------------------------------
+# [8] 登录选项列表（客户端登录框打开即拉）
+# ---------------------------------------------------------------------------
+next_step "登录选项（GET /api/login-options）"
+http GET "$BASE_URL/api/login-options"
+check "HTTP 状态码" "200" "$STATUS"
+check "响应为空列表（无第三方登录）" "[]" "$(cat "$BODY")"
+
+# ---------------------------------------------------------------------------
+# [9] 显式注册：新用户 -> 200 + token；重复 -> 409；弱口令 -> 400
+# ---------------------------------------------------------------------------
+REG_USER="zc-reg-$(date +%s)"
+next_step "显式注册新用户（POST /api/register）"
+http POST "$BASE_URL/api/register" "{\"username\":\"$REG_USER\",\"password\":\"$TEST_PASS\"}"
+check "HTTP 状态码" "200" "$STATUS"
+check "access_token 存在" "0" "$(jsonget "$BODY" access_token | grep -c '<<')"
+check "type = access_token" "access_token" "$(jsonget "$BODY" type)"
+check "user.name" "$REG_USER" "$(jsonget "$BODY" user.name)"
+
+next_step "重复注册（POST /api/register）"
+http POST "$BASE_URL/api/register" "{\"username\":\"$REG_USER\",\"password\":\"$TEST_PASS\"}"
+check "HTTP 状态码（用户名已存在）" "409" "$STATUS"
+
+next_step "弱口令注册（POST /api/register）"
+http POST "$BASE_URL/api/register" "{\"username\":\"zc-weak-$(date +%s)\",\"password\":\"123\"}"
+check "HTTP 状态码（密码至少 4 位）" "400" "$STATUS"
+
+# ---------------------------------------------------------------------------
+# [10] 首登自动注册（远端自给自足的关键路径）
+# ---------------------------------------------------------------------------
+AU_USER="zc-auto-$(date +%s)"
+next_step "首登自动注册（POST /api/login 未存在用户）"
+http POST "$BASE_URL/api/login" "{\"username\":\"$AU_USER\",\"password\":\"$TEST_PASS\"}"
+check "HTTP 状态码" "200" "$STATUS"
+check "access_token 存在" "0" "$(jsonget "$BODY" access_token | grep -c '<<')"
 
 echo "=== 完成：$((STEP)) 步，$FAILURES 个失败 ==="
 exit $([ "$FAILURES" -eq 0 ] && echo 0 || echo 1)

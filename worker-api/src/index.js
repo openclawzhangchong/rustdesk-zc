@@ -35,6 +35,7 @@ const CORS_HEADERS = {
 // path -> 允许的 method（用于 405 判定）
 const KNOWN_PATHS = {
   "/api/login": ["POST"],
+  "/api/register": ["POST"],
   "/api/login-options": ["GET"],
   "/api/ab/personal": ["POST"],
   "/api/ab": ["GET", "POST"],
@@ -121,6 +122,61 @@ async function authenticate(request, env) {
 }
 
 // POST /api/login
+/** 显式注册：客户端注册按钮调用。成功即返回 token（注册完直接登录） */
+async function handleRegister(request, env) {
+  const raw = await request.text();
+  let body;
+  try {
+    body = raw.trim() ? JSON.parse(raw) : null;
+  } catch (e) {
+    return errorResponse("请求格式错误", 400);
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return errorResponse("请求格式错误", 400);
+  }
+  const username = typeof body.username === "string" ? body.username.trim() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  if (!username || !password) return errorResponse("用户名或密码不能为空", 400);
+  if (username.length > 64) return errorResponse("用户名过长", 400);
+  if (password.length < 4) return errorResponse("密码至少 4 位", 400);
+  if (password.length > 128) return errorResponse("密码过长", 400);
+
+  const exists = await env.DB
+    .prepare("SELECT id FROM users WHERE username = ?")
+    .bind(username)
+    .first();
+  if (exists) return errorResponse("用户名已存在，请直接登录", 409);
+
+  const salt = randomHex(SALT_BYTES);
+  const hash = await hashPassword(password, salt);
+  const ins = await env.DB
+    .prepare(
+      "INSERT INTO users (id, username, password_hash, salt, display_name, created_at) " +
+        "VALUES (?, ?, ?, ?, ?, ?)"
+    )
+    .bind(crypto.randomUUID(), username, hash, salt, username, Date.now())
+    .run();
+  if (!ins.success) return errorResponse("注册失败，请重试", 500);
+
+  // 注册成功即发 token（LoginResponse 同款结构，客户端注册完直接进入登录态）
+  const now = Date.now();
+  const token = newToken();
+  const userRow = await env.DB
+    .prepare("SELECT id FROM users WHERE username = ?")
+    .bind(username)
+    .first();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM tokens WHERE expires_at < ?").bind(now),
+    env.DB.prepare("INSERT INTO tokens (token, user_id, expires_at) VALUES (?, ?, ?)")
+      .bind(token, userRow.id, now + TOKEN_TTL_MS),
+  ]);
+  return jsonResponse({
+    access_token: token,
+    type: "access_token",
+    user: { name: username, display_name: username, avatar: "", status: "" },
+  });
+}
+
 async function handleLogin(request, env) {
   const raw = await request.text();
   let body;
@@ -325,6 +381,7 @@ async function route(request, env) {
   const method = request.method;
 
   if (path === "/api/login" && method === "POST") return handleLogin(request, env);
+  if (path === "/api/register" && method === "POST") return handleRegister(request, env);
   // 客户端登录框打开即拉第三方登录列表（user_model.dart queryOidcLoginOptions），
   // 缺此端点会 404 红字报错；返回空数组 = 无第三方登录，仅账号密码
   if (path === "/api/login-options" && method === "GET") return jsonResponse([], 200);
