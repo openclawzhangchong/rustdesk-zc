@@ -1,4 +1,4 @@
-package com.carriez.flutter_hbb
+package cn.jiuyeke.zcdesk
 
 import java.nio.ByteBuffer
 import java.util.Timer

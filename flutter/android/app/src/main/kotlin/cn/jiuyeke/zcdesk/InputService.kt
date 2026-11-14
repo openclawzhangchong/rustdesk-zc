@@ -1,4 +1,4 @@
-package com.carriez.flutter_hbb
+package cn.jiuyeke.zcdesk
 
 /**
  * Handle remote input and dispatch android gesture
@@ -34,7 +34,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import hbb.MessageOuterClass.KeyEvent
 import hbb.MessageOuterClass.KeyboardMode
-import hbb.KeyEventConverter
+import cn.jiuyeke.zcdesk.KeyEventConverter
 
 // const val BUTTON_UP = 2
 // const val BUTTON_BACK = 0x08

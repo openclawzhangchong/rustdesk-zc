@@ -1,4 +1,4 @@
-package hbb;
+package cn.jiuyeke.zcdesk
 import android.view.KeyEvent
 import android.view.KeyCharacterMap
 import hbb.MessageOuterClass.KeyboardMode
