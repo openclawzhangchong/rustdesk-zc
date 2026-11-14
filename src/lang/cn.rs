@@ -230,6 +230,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Password missed", "密码没有填写"),
         ("Wrong credentials", "提供的登录信息错误"),
         ("Create Account", "注册账号"),
+        ("Show account panel", "显示账户区"),
         ("Register succeeded, logged in", "注册成功，已自动登录"),
         ("Registration failed", "注册失败"),
         ("The verification code is incorrect or has expired", "验证码错误或已超时"),

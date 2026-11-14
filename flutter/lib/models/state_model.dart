@@ -26,6 +26,8 @@ class StateGlobal {
   final isPortrait = false.obs;
 
   final updateUrl = ''.obs;
+  // 左侧栏账户区显隐（设置页可切换，默认显示；option: hide-account-board 取反）
+  final showAccountBoard = true.obs;
 
   String _inputSource = '';
 

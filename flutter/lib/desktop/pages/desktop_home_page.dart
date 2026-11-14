@@ -191,6 +191,15 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget buildAccountBoard(BuildContext context) {
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
     final secondaryColor = Theme.of(context).textTheme.bodySmall?.color;
+    // 设置页可隐藏（默认显示）：外层 Obx 监听 showAccountBoard
+    return Obx(() {
+      if (!stateGlobal.showAccountBoard.value) return const SizedBox.shrink();
+      return innerAccountBoard(context, textColor, secondaryColor);
+    });
+  }
+
+  Widget innerAccountBoard(
+      BuildContext context, Color? textColor, Color? secondaryColor) {
     return Obx(() {
       final loggedIn = gFFI.userModel.isLogin;
       final name = gFFI.userModel.displayNameOrUserName;
@@ -813,6 +822,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   void initState() {
     super.initState();
+    stateGlobal.showAccountBoard.value =
+        !mainGetLocalBoolOptionSync('hide-account-board');
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();

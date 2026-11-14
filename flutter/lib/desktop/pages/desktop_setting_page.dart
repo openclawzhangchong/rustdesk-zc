@@ -656,6 +656,15 @@ class _GeneralState extends State<_General> {
       ));
     }
 
+    // 左侧栏账户区显隐（默认显示；local option hide-account-board）
+    children.add(_OptionCheckBox(
+      context,
+      'Show account panel',
+      'hide-account-board',
+      reverse: true,
+      isServer: false,
+      update: (hide) => stateGlobal.showAccountBoard.value = !hide,
+    ));
     if (!bind.isDisableAccount()) {
       children.add(_OptionCheckBox(
         context,
