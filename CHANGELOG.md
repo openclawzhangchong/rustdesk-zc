@@ -5,6 +5,28 @@
 
 ---
 
+## v1.0.6-beta（账号登录 + 地址簿云同步，测试版）
+
+### 新增
+
+- 自建 API 服务器上线：`https://zcdeskapi.jiuyeke.cn`
+- **账号登录**：主界面 / 设置中的账号入口恢复可用，支持注册、登录，登录态跨端同步
+- **地址簿云同步**：地址簿（AB）条目随账号云端存储，多设备（Android / Windows）自动同步，
+  不再只存本机
+
+### 客户端改动
+
+- 种子配置注入 `api-server` 选项（仅空时填充，用户手动改过则保留），指向
+  `https://zcdeskapi.jiuyeke.cn`；客户端原生协议不变
+- 移除出厂硬设置 `disable-ab=Y` / `disable-account=Y`——这两项原本为无 API 的自建环境
+  隐藏了地址簿与账号入口，API 上线后必须放开才能看到登录 / 通讯录入口
+  （`disable-group-panel` 保留，群组面板暂不开放）
+
+### 说明
+
+- 本版本为**测试版（beta）**，登录与同步功能仍在验证中
+- API 服务端由 worker-api 独立部署，接口协议见 `rustdesk-selfhost/docs/13-login-api-design.md`
+
 ## v1.0.5-outgoing（Android 单向版）
 
 ### Android APK 阉割为「纯控制器」

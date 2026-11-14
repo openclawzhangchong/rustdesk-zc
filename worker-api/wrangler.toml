@@ -1,0 +1,21 @@
+# 智策远控 API Worker —— 登录 + 地址簿云同步
+# 契约文档：rustdesk-selfhost/docs/13-login-api-design.md
+# 部署前需先执行 `wrangler d1 create zcdesk-db`，把输出的 database_id 填到下方占位符。
+
+name = "zcdesk-api"
+main = "src/index.js"
+compatibility_date = "2025-11-01"
+workers_dev = false
+
+# D1 数据库绑定（Worker 代码中通过 env.DB 访问）
+[[d1_databases]]
+binding = "DB"
+database_name = "zcdesk-db"
+# 占位符：部署前替换为 `wrangler d1 create zcdesk-db` 返回的真实 database_id
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# 自定义域绑定（二选一）：
+# 1) 推荐：在 Cloudflare Dashboard -> Workers & Pages -> zcdesk-api -> Settings ->
+#    Domains & Routes -> Add Custom Domain，填 zcdeskapi.jiuyeke.cn（详见 README.md）；
+# 2) 或取消下行注释用 wrangler 直接绑定：
+# routes = [{ pattern = "zcdeskapi.jiuyeke.cn", custom_domain = true }]

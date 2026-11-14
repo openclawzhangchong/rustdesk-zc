@@ -725,4 +725,4 @@ const kCheckSoftwareUpdateFinish = 'check_software_update_finish';
 
 // 智策远控自己的产品版本号，每次发版改这一行，并与 GitHub tag 对齐。
 // 基线 RustDesk 版本走 Cargo.toml（受 CI 的 --version 校验约束），两者刻意分开。
-const kZcProductVersion = 'v1.0.5';
+const kZcProductVersion = 'v1.0.6-beta';

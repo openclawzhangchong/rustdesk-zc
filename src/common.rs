@@ -144,11 +144,11 @@ fn zc_seed_default_server() {
     if hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk") {
         *hbb_common::config::APP_NAME.write().unwrap() = "智策远控".to_owned();
     }
-    // 品牌化开关：隐藏 "Powered by" 字样与登录/通讯录/群组入口（自建无 API，均无作用）
+    // 品牌化开关：隐藏 "Powered by" 字样与群组入口。
+    // 注意：原先隐藏地址簿与账号入口的两个开关已删除——自建 API（zcdeskapi）
+    // 提供账号登录与地址簿云同步，入口必须保持可见。
     let mut zc_hard_opts = vec![
         ("hide-powered-by-me", "Y"),
-        ("disable-ab", "Y"),
-        ("disable-account", "Y"),
         ("disable-group-panel", "Y"),
     ];
     // Android 客户端：只允许控制别人，不允许被别人控制（conn-type=outgoing）
@@ -169,10 +169,14 @@ fn zc_seed_default_server() {
     const ZC_ID_SERVER: &str = "47.119.167.86";
     const ZC_RELAY_SERVER: &str = "47.119.167.86";
     const ZC_KEY: &str = "L2ksXhK9ZSS+shd3p0J10Sb2BtZGb4vqr8KBHBswF38=";
+    // 自建 API 服务器：账号登录（/api/login）与地址簿云同步（/api/ab/*）。
+    // api-server 是普通 option（非 HARD_SETTINGS），仅空时填充。
+    const ZC_API_SERVER: &str = "https://zcdeskapi.jiuyeke.cn";
     for (k, v) in [
         ("custom-rendezvous-server", ZC_ID_SERVER),
         ("relay-server", ZC_RELAY_SERVER),
         ("key", ZC_KEY),
+        ("api-server", ZC_API_SERVER),
     ] {
         if hbb_common::config::Config::get_option(k).is_empty() {
             hbb_common::config::Config::set_option(k.to_owned(), v.to_owned());
