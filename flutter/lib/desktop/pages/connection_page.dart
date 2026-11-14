@@ -156,9 +156,6 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
 
   _buildConnStatusMsg() {
     widget.onSvcStatusChanged?.call();
-    return Text(
-  _buildConnStatusMsg() {
-    widget.onSvcStatusChanged?.call();
     // 产品版本号常驻底部状态栏（用户要求）：就绪状态旁始终可见
     return Text.rich(
       TextSpan(
