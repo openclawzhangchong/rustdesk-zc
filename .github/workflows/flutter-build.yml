@@ -596,6 +596,9 @@ jobs:
           sha256sum ../../SignOutput/zcdesk-*.msi
 
       - name: Build pre-built MSI template
+        # ZC: 企业部署模板（RDAPPNAM 占位符机制）非本项目交付物，跳过。
+        # 跳过原因：改名 exe 后模板步骤的 mv 期望 rustdesk.exe 已不存在会失败。
+        if: false
         # Two things this works around: preprocess.py rewrites res/msi in place, so the
         # tree is reset around this second variant; and it locates the app as
         # <app-name>.exe inside the dist, so the dist copy is renamed to match.
