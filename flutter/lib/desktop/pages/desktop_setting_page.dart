@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
@@ -2579,92 +2580,221 @@ class _About extends StatefulWidget {
 }
 
 class _AboutState extends State<_About> {
+  // 设计稿配色（用户提供的 HTML 设计稿）：teal 渐变 + 灰底信息块
+  static const _brand = Color(0xFF0F8A7D);
+  static const _brandDark = Color(0xFF0B6B61);
+  static const _brandSoft = Color(0xFFE6F3F1);
+  static const _line = Color(0xFFECEFF0);
+  static const _faint = Color(0xFF8A9597);
+  static const _mono = 'Consolas';
+
+  Widget _sectionTitle(String label) => Text(
+        translate(label),
+        style: TextStyle(fontSize: 12.5, color: _faint, letterSpacing: 0.8),
+      ).marginOnly(bottom: 8);
+
+  Widget _infoItem(String label, String value, {bool full = false}) =>
+      Expanded(
+        flex: full ? 2 : 1,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: TextStyle(fontSize: 12.5, color: _faint))
+                .marginOnly(bottom: 2),
+            SelectionArea(
+              child: Text(value, style: const TextStyle(fontSize: 14.5)),
+            ),
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return futureBuilder(future: () async {
-      final license = await bind.mainGetLicense();
       final version = await bind.mainGetVersion();
       final buildDate = await bind.mainGetBuildDate();
       final fingerprint = await bind.mainGetFingerprint();
       final myId = await bind.mainGetMyId();
       return {
-        'license': license,
         'version': version,
         'buildDate': buildDate,
         'fingerprint': fingerprint,
         'myId': myId
       };
     }(), hasData: (data) {
-      final license = data['license'].toString();
       final version = data['version'].toString();
       final buildDate = data['buildDate'].toString();
       final fingerprint = data['fingerprint'].toString();
       final myId = data['myId'].toString();
-      const linkStyle = TextStyle(decoration: TextDecoration.underline);
       final scrollController = ScrollController();
+      // 按 HTML 设计稿重排（用户要求）：分节信息网格 + 指纹复制 + 网站按钮；
+      // 底部横幅删除"基于开源项目 RustDesk（AGPL-3.0）构建"
       return SingleChildScrollView(
         controller: scrollController,
         child: _Card(title: translate('About RustDesk'), children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(
-                height: 8.0,
-              ),
-              SelectionArea(
-                  child: Text(
-                      '${translate('Product Version')}: $kZcProductVersion')
-                      .marginSymmetric(vertical: 4.0)),
-              SelectionArea(
-                  child: Text('${translate('Version')}: $version')
-                      .marginSymmetric(vertical: 4.0)),
-              SelectionArea(
-                  child: Text('${translate('Build Date')}: $buildDate')
-                      .marginSymmetric(vertical: 4.0)),
-              if (!isWeb)
-                SelectionArea(
-                    child: Text('${translate('Fingerprint')}: $fingerprint')
-                        .marginSymmetric(vertical: 4.0)),
-              SelectionArea(
-                  child: Text('${translate('ID')}: $myId')
-                      .marginSymmetric(vertical: 4.0)),
-              InkWell(
-                  onTap: () {
-                    launchUrlString('https://zcdesk.jiuyeke.cn');
-                  },
-                  child: Text(
-                    translate('Website'),
-                    style: linkStyle,
-                  ).marginSymmetric(vertical: 4.0)),
-              Container(
-                decoration: const BoxDecoration(color: Color(0xFF0D9488)),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                child: SelectionArea(
-                    child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Copyright © ${DateTime.now().toString().substring(0, 4)} 智策AI研发团队 · 张翀\n基于开源项目 RustDesk（AGPL-3.0）构建',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          Text(
-                            '让远程控制更简单、更私有',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white),
-                          )
-                        ],
+              const SizedBox(height: 8.0),
+              // 头部：logo 块 + 标题 + 副标题
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [_brand, _brandDark],
                       ),
                     ),
+                    child:
+                        const Icon(Icons.computer_rounded, color: Colors.white),
+                  ).marginOnly(right: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(translate('About RustDesk'),
+                          style: const TextStyle(
+                              fontSize: 19, fontWeight: FontWeight.w700)),
+                      Text('让远程控制更简单、更私有',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.color)),
+                    ],
+                  ),
+                ],
+              ).marginOnly(bottom: 14),
+              // 版本信息
+              _sectionTitle('Version info'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _infoItem(translate('Product Version'), kZcProductVersion),
+                  _infoItem(translate('Version'), version),
+                ],
+              ),
+              _infoItem(translate('Build Date'), buildDate, full: true)
+                  .marginOnly(top: 10),
+              Divider(color: _line).marginSymmetric(vertical: 12),
+              // 设备标识
+              _sectionTitle('Device identity'),
+              _infoItem(translate('ID'), myId, full: true),
+              Text(translate('Fingerprint'),
+                      style: TextStyle(fontSize: 12.5, color: _faint))
+                  .marginOnly(top: 10, bottom: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6F8F8),
+                  border: Border.all(color: _line),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: SelectionArea(
+                        child: Text(
+                          fingerprint,
+                          style: TextStyle(
+                              fontFamily: _mono,
+                              fontSize: 12.5,
+                              height: 1.6,
+                              color: _brandDark),
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        minimumSize: Size.zero,
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(color: _line),
+                        ),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: fingerprint));
+                        BotToast.showText(text: translate('Copied'));
+                      },
+                      child: Text(translate('Copy'),
+                          style: TextStyle(fontSize: 12, color: _faint)),
+                    ).marginOnly(left: 8),
                   ],
-                )),
-              ).marginSymmetric(vertical: 4.0)
+                ),
+              ),
+              // 网站按钮
+              InkWell(
+                onTap: () => launchUrlString('https://zcdesk.jiuyeke.cn'),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _brandSoft,
+                    border: Border.all(color: _brandSoft),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.language, size: 15, color: _brand),
+                      Text(translate('Website'),
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: _brand))
+                          .marginOnly(left: 6),
+                    ],
+                  ),
+                ),
+              ).marginOnly(top: 16),
+              // 底部横幅（已删除"基于开源项目 RustDesk（AGPL-3.0）构建"）
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [_brand, _brandDark],
+                  ),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+                child: SelectionArea(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Copyright © ${DateTime.now().toString().substring(0, 4)} 智策AI研发团队 · 张翀',
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.white.withOpacity(.92)),
+                      ),
+                      Text(
+                        '让远程控制更简单、更私有',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                            color: Colors.white),
+                      ).marginOnly(top: 3),
+                    ],
+                  ),
+                ),
+              ).marginOnly(top: 18, bottom: 6),
             ],
-          ).marginOnly(left: _kContentHMargin)
+          ).marginOnly(left: _kContentHMargin, right: _kContentHMargin)
         ]),
       );
     });
