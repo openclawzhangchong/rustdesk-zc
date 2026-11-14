@@ -157,14 +157,32 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   _buildConnStatusMsg() {
     widget.onSvcStatusChanged?.call();
     return Text(
-      _svcStopped.value
-          ? translate("Service is not running")
-          : stateGlobal.svcStatus.value == SvcStatus.connecting
-              ? translate("connecting_status")
-              : stateGlobal.svcStatus.value == SvcStatus.notReady
-                  ? translate("not_ready_status")
-                  : translate('Ready'),
-      style: TextStyle(fontSize: em),
+  _buildConnStatusMsg() {
+    widget.onSvcStatusChanged?.call();
+    // 产品版本号常驻底部状态栏（用户要求）：就绪状态旁始终可见
+    return Text.rich(
+      TextSpan(
+        text: _svcStopped.value
+            ? translate("Service is not running")
+            : stateGlobal.svcStatus.value == SvcStatus.connecting
+                ? translate("connecting_status")
+                : stateGlobal.svcStatus.value == SvcStatus.notReady
+                    ? translate("not_ready_status")
+                    : translate('Ready'),
+        style: TextStyle(fontSize: em),
+        children: [
+          TextSpan(
+            text: '  $kZcProductVersion',
+            style: TextStyle(
+                fontSize: em * 0.85,
+                color: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.color
+                    ?.withOpacity(0.55)),
+          ),
+        ],
+      ),
     );
   }
 

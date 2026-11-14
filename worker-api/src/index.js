@@ -35,6 +35,7 @@ const CORS_HEADERS = {
 // path -> 允许的 method（用于 405 判定）
 const KNOWN_PATHS = {
   "/api/login": ["POST"],
+  "/api/login-options": ["GET"],
   "/api/ab/personal": ["POST"],
   "/api/ab": ["GET", "POST"],
   "/api/ab/settings": ["POST"],
@@ -139,15 +140,30 @@ async function handleLogin(request, env) {
     return errorResponse("用户名或密码错误", 400);
   }
 
-  const user = await env.DB
+  let user = await env.DB
     .prepare("SELECT id, username, password_hash, salt, display_name FROM users WHERE username = ?")
     .bind(username)
     .first();
 
   if (!user) {
-    // 对不存在的用户也执行一次等量 KDF，避免通过耗时枚举用户名
-    await hashPassword(password, randomHex(SALT_BYTES));
-    return errorResponse("用户名或密码错误", 401);
+    // 自动注册：首次登录即建号（客户端没有注册界面，CHANGELOG 承诺"支持注册、登录"，
+    // 唯一可行方式就是首登建号；个人部署，域名未公开传播，可接受。
+    // 要收紧时：预建账号后把本分支改回 401。密码下限 4 位（docs/13 用户要求宽松）。
+    if (password.length < 4) return errorResponse("密码至少 4 位", 400);
+    const salt = randomHex(SALT_BYTES);
+    const hash = await hashPassword(password, salt);
+    const ins = await env.DB
+      .prepare(
+        "INSERT INTO users (id, username, password_hash, salt, display_name, created_at) " +
+          "VALUES (?, ?, ?, ?, ?, ?)"
+      )
+      .bind(crypto.randomUUID(), username, hash, salt, username, Date.now())
+      .run();
+    if (!ins.success) return errorResponse("注册失败，请重试", 500);
+    user = await env.DB
+      .prepare("SELECT id, username, password_hash, salt, display_name FROM users WHERE username = ?")
+      .bind(username)
+      .first();
   }
 
   const computed = await hashPassword(password, user.salt);
@@ -309,6 +325,9 @@ async function route(request, env) {
   const method = request.method;
 
   if (path === "/api/login" && method === "POST") return handleLogin(request, env);
+  // 客户端登录框打开即拉第三方登录列表（user_model.dart queryOidcLoginOptions），
+  // 缺此端点会 404 红字报错；返回空数组 = 无第三方登录，仅账号密码
+  if (path === "/api/login-options" && method === "GET") return jsonResponse([], 200);
   if (path === "/api/ab/personal" && method === "POST") return handleAbData(request, env);
   if (path === "/api/ab" && method === "POST") return handleAbData(request, env);
   if (path === "/api/ab/settings" && method === "POST") return handleAbSettings(request, env);
