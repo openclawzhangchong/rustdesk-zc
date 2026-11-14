@@ -5,17 +5,19 @@ Cloudflare Worker + D1 实现，端点/字段/Schema 严格按契约文档
 
 ```
 worker-api/
-├── wrangler.toml        # Worker 配置（name=zcdesk-api，D1 绑定 DB -> zcdesk-db）
+├── wrangler.toml        # Worker 配置（name=zcdesk-api，D1 绑定 DB -> intern-db（复用账户空库，避免 10 库上限删库））
 ├── schema.sql           # D1 建表语句（users / tokens / ab_personal / ab_settings）
 ├── src/index.js         # ES Module Worker（全部端点）
-└── test/api-tests.sh    # curl 烟测脚本
+└── test/api-tests.sh    # curl 烟测脚本（15 步：登录/注册/自动注册/地址簿双向/鉴权/选项）
 ```
 
 ## 端点一览
 
 | 端点 | 说明 |
 | --- | --- |
-| `POST /api/login` | 登录，成功返回 `{access_token, type:"access_token", user:{name,display_name,avatar,status}}`；失败 401 `{error:"用户名或密码错误"}` |
+| `POST /api/login` | 登录，成功返回 `{access_token, type:"access_token", user:{name,display_name,avatar,status}}`；失败 401 `{error:"用户名或密码错误"}`。**未存在用户自动建号**（首登即注册，个人部署策略；要收紧把该分支改回 401） |
+| `POST /api/register` | 显式注册（客户端登录框『注册账号』按钮），成功 200 返回同登录结构（注册完即登录）；重复 409 `{error:"用户名已存在，请直接登录"}`；弱口令（<4位）400 |
+| `GET /api/login-options` | 第三方登录选项列表，固定 200 `[]`（客户端登录框打开即拉，缺失会 404 红字报错） |
 | `POST /api/ab/personal` | 空体=拉取 `{guid, data}`（未推送过 data 为空结构）；带 `{"data":"<JSON字符串>"}` =覆盖保存，200 空体。guid 首次生成 UUIDv4 后固定 |
 | `POST /api/ab` | 推送覆盖保存（同上信封，data 存 TEXT 原样不解析），200 空体 |
 | `POST /api/ab/settings` | 带 JSON 体=保存设置（200 空体）；空体=读取当前设置（客户端 `_getAbSettings` 以空体 POST 读取，需返回 JSON 对象） |
