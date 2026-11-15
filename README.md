@@ -1,3 +1,36 @@
+# 智策远控 · zcdesk
+
+> 开源远程桌面，开箱即连。基于 [RustDesk 1.5.1](https://github.com/rustdesk/rustdesk) 二次开发。
+> 作者：张翀 · 智策AI研发团队 · 官网：[zcdesk.jiuyeke.cn](https://zcdesk.jiuyeke.cn)
+
+> [!WARNING]
+> ## 🚫 项目铁律：千万不能走上游的登录
+>
+> **本项目将来若要做账号/登录功能，必须是完全独立的自研实现，绝对禁止复用、
+> 触发或写入任何 RustDesk 上游的账户状态（尤其是 `access_token`）。**
+>
+> 原因（2026-11-15 事故，完整教训见 `CHANGELOG.md` 与知识库
+> `zcdesk-login-token-oss-server-deadlock.md`）：
+> - `access_token` 不是普通账号凭据，而是**上游协议栈的全局状态**。只要它出现在客户端
+>   本地配置里，上游就会在连接 ID 服务器时切到"加密握手"分支，**等服务器先发密钥**
+>   （`READ_TIMEOUT=18s` 死等）。
+> - 自建 OSS 版 `rustdesk-server`（1.1.x）**没有这个能力**（源码 0 处 KeyExchange），
+>   于是所有跨公网连接必然超时死锁（`Failed to secure tcp: deadline`）。
+> - **D1/Worker 存账号本身完全无害，有害的是把 token 写进上游的配置命名空间**——
+>   这一个动作把"独立的登录功能"和"最核心的远程连接"耦合在了一起，
+>   而耦合是上游早就埋好的、我们事先没有审计的。
+>
+> **因此**：
+> 1. 现在：登录/地址簿云同步入口已隐藏（`disable-account`/`disable-ab`），
+>    `api-server` 不再预置，客户端永远走"未登录"的干净连接路径。**不要移除这两个开关。**
+> 2. 将来若要做账号：只能做**独立登录**——自己的账号服务 + **自己独立的配置键**
+>    （绝不写 `access_token` 等上游键），或按设备 ID 存备注的平行服务，
+>    绝不触碰上游登录状态。
+> 3. 任何新功能上线前，验收清单**第一条永远是"原来能连的电脑还连不连得上"**，
+>    先跑通这条回归，再谈新功能。
+
+---
+
 <p align="center">
   <img src="res/logo-header.svg" alt="RustDesk - Your remote desktop"><br>
   <a href="#raw-steps-to-build">Build</a> •
