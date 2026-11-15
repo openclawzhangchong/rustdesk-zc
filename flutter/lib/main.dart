@@ -167,9 +167,7 @@ void runMainApp(bool startService) async {
       rustDeskWinManager.registerActiveWindow(kWindowMainId);
     }
     windowManager.setOpacity(1);
-    // kWindowType is only assigned for multi_window sub-windows, so the main
-    // window would fall through to `default` and lose the product version.
-    windowManager.setTitle(getWindowName(overrideType: WindowType.Main));
+    windowManager.setTitle(getWindowName());
     // Do not use `windowManager.setResizable()` here.
     setResizable(!bind.isIncomingOnly());
   });

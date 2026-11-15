@@ -52,10 +52,10 @@ class MultiWindowCallResult {
 /// Window Manager
 /// mainly use it in `Main Window`
 /// use it in sub window is not recommended
-class ZcMultiWindowManager {
-  ZcMultiWindowManager._();
+class RustDeskMultiWindowManager {
+  RustDeskMultiWindowManager._();
 
-  static final instance = ZcMultiWindowManager._();
+  static final instance = RustDeskMultiWindowManager._();
 
   final Set<int> _inactiveWindows = {};
   final Set<int> _activeWindows = {};
@@ -225,7 +225,6 @@ class ZcMultiWindowManager {
     String remoteId,
     List<int> windows, {
     String? password,
-    String loginMethod = '',
     bool? forceRelay,
     String? switchUuid,
     bool? isRDP,
@@ -250,9 +249,6 @@ class ZcMultiWindowManager {
     if (connToken != null) {
       params['connToken'] = connToken;
     }
-    if (loginMethod.isNotEmpty) {
-      params['loginMethod'] = loginMethod;
-    }
     final msg = jsonEncode(params);
 
     // separate window for file transfer is not supported
@@ -274,7 +270,6 @@ class ZcMultiWindowManager {
   Future<MultiWindowCallResult> newRemoteDesktop(
     String remoteId, {
     String? password,
-    String loginMethod = '',
     bool? isSharedPassword,
     String? switchUuid,
     bool? forceRelay,
@@ -285,7 +280,6 @@ class ZcMultiWindowManager {
       remoteId,
       _remoteDesktopWindows,
       password: password,
-      loginMethod: loginMethod,
       forceRelay: forceRelay,
       switchUuid: switchUuid,
       isSharedPassword: isSharedPassword,
@@ -295,7 +289,6 @@ class ZcMultiWindowManager {
   Future<MultiWindowCallResult> newFileTransfer(
     String remoteId, {
     String? password,
-    String loginMethod = '',
     bool? isSharedPassword,
     bool? forceRelay,
     String? connToken,
@@ -306,7 +299,6 @@ class ZcMultiWindowManager {
       remoteId,
       _fileTransferWindows,
       password: password,
-      loginMethod: loginMethod,
       forceRelay: forceRelay,
       isSharedPassword: isSharedPassword,
       connToken: connToken,
@@ -316,7 +308,6 @@ class ZcMultiWindowManager {
   Future<MultiWindowCallResult> newViewCamera(
     String remoteId, {
     String? password,
-    String loginMethod = '',
     bool? isSharedPassword,
     String? switchUuid,
     bool? forceRelay,
@@ -328,7 +319,6 @@ class ZcMultiWindowManager {
       remoteId,
       _viewCameraWindows,
       password: password,
-      loginMethod: loginMethod,
       forceRelay: forceRelay,
       switchUuid: switchUuid,
       isSharedPassword: isSharedPassword,
@@ -340,7 +330,6 @@ class ZcMultiWindowManager {
     String remoteId,
     bool isRDP, {
     String? password,
-    String loginMethod = '',
     bool? isSharedPassword,
     bool? forceRelay,
     String? connToken,
@@ -351,7 +340,6 @@ class ZcMultiWindowManager {
       remoteId,
       _portForwardWindows,
       password: password,
-      loginMethod: loginMethod,
       forceRelay: forceRelay,
       isRDP: isRDP,
       isSharedPassword: isSharedPassword,
@@ -362,7 +350,6 @@ class ZcMultiWindowManager {
   Future<MultiWindowCallResult> newTerminal(
     String remoteId, {
     String? password,
-    String loginMethod = '',
     bool? isSharedPassword,
     bool? forceRelay,
     String? connToken,
@@ -388,9 +375,6 @@ class ZcMultiWindowManager {
       "isSharedPassword": isSharedPassword,
       "connToken": connToken,
     };
-    if (loginMethod.isNotEmpty) {
-      params['loginMethod'] = loginMethod;
-    }
     final msg = jsonEncode(params);
 
     // Always create a new window for terminal
@@ -594,4 +578,4 @@ class ZcMultiWindowManager {
   }
 }
 
-final rustDeskWinManager = ZcMultiWindowManager.instance;
+final rustDeskWinManager = RustDeskMultiWindowManager.instance;

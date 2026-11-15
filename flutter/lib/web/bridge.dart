@@ -149,7 +149,6 @@ class RustdeskImpl {
       required String password,
       required bool isSharedPassword,
       String? connToken,
-      required String loginMethod,
       dynamic hint}) {
     return js.context.callMethod('setByName', [
       'session_add_sync',
@@ -157,7 +156,6 @@ class RustdeskImpl {
         'id': id,
         'password': password,
         'is_shared_password': isSharedPassword,
-        'login_method': loginMethod,
         'isFileTransfer': isFileTransfer,
         'isViewCamera': isViewCamera,
         'isTerminal': isTerminal
@@ -1966,9 +1964,6 @@ class RustdeskImpl {
       required String key,
       required String param,
       dynamic hint}) {
-    if (key == 'login_method') {
-      return js.context.callMethod('getByName', ['login_method']);
-    }
     throw UnimplementedError("sessionGetCommonSync");
   }
 

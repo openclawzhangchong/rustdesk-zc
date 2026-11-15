@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
-import 'package:flutter_hbb/common/widgets/login.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
@@ -93,7 +92,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       buildTip(context),
       if (!isOutgoingOnly) buildIDBoard(context),
       if (!isOutgoingOnly) buildPasswordBoard(context),
-      if (!isOutgoingOnly) buildAccountBoard(context),
       FutureBuilder<Widget>(
         future: Future.value(
             Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
@@ -185,105 +183,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       color: Theme.of(context).scaffoldBackgroundColor,
       child: ConnectionPage(),
     );
-  }
-
-  /// 账户区（用户要求）：已登录显示用户名+登出；未登录显示登录/注册按钮
-  Widget buildAccountBoard(BuildContext context) {
-    final textColor = Theme.of(context).textTheme.titleLarge?.color;
-    final secondaryColor = Theme.of(context).textTheme.bodySmall?.color;
-    // 设置页可隐藏（默认显示）：外层 Obx 监听 showAccountBoard
-    return Obx(() {
-      if (!stateGlobal.showAccountBoard.value) return const SizedBox.shrink();
-      return innerAccountBoard(context, textColor, secondaryColor);
-    });
-  }
-
-  Widget innerAccountBoard(
-      BuildContext context, Color? textColor, Color? secondaryColor) {
-    return Obx(() {
-      final loggedIn = gFFI.userModel.isLogin;
-      final name = gFFI.userModel.displayNameOrUserName;
-      return Container(
-        margin: const EdgeInsets.only(left: 20, right: 11, top: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 2,
-              decoration: const BoxDecoration(color: MyTheme.accent),
-            ).marginOnly(top: 5),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 7),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      translate("Account"),
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).textTheme.bodySmall?.color),
-                    ),
-                    if (loggedIn)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            Icon(Icons.account_circle,
-                                size: 18, color: MyTheme.accent),
-                            Expanded(
-                              child: Text(
-                                name,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 13, color: textColor),
-                              ).marginOnly(left: 4),
-                            ),
-                            InkWell(
-                              onTap: () => gFFI.userModel.logOut(),
-                              child: Text(
-                                translate("Logout"),
-                                style: TextStyle(
-                                    fontSize: 12, color: secondaryColor),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => loginDialog(),
-                                child: Text(
-                                  translate("Login"),
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => loginDialog(),
-                                child: Text(
-                                  translate("Create Account"),
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    });
   }
 
   buildIDBoard(BuildContext context) {
@@ -392,13 +291,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   buildPasswordBoard2(BuildContext context, ServerModel model) {
     RxBool refreshHover = false.obs;
     RxBool editHover = false.obs;
-    RxBool revealed = false.obs;
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
     final showOneTime = model.approveMode != 'click' &&
         model.verificationMethod != kUsePermanentPassword;
-    // 固定密码模式下卡片本来什么都不显示，这里显示播种/改密码留下的副本。
-    final showPermanent =
-        model.showsPermanentPassword && model.serverPasswd.text != '-';
     return Container(
       margin: EdgeInsets.only(left: 20.0, right: 16, top: 13, bottom: 13),
       child: Row(
@@ -417,9 +312,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AutoSizeText(
-                    translate(showPermanent
-                        ? "Permanent Password"
-                        : "One-time Password"),
+                    translate("One-time Password"),
                     style: TextStyle(
                         fontSize: 14, color: textColor?.withOpacity(0.5)),
                     maxLines: 1,
@@ -429,40 +322,24 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       Expanded(
                         child: GestureDetector(
                           onDoubleTap: () {
-                            if (showOneTime || showPermanent) {
+                            if (showOneTime) {
                               Clipboard.setData(
                                   ClipboardData(text: model.serverPasswd.text));
                               showToast(translate("Copied"));
                             }
                           },
-                          child: Obx(
-                            () => TextFormField(
-                              controller: model.serverPasswd,
-                              readOnly: true,
-                              obscureText: showPermanent && !revealed.value,
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding:
-                                    EdgeInsets.only(top: 14, bottom: 10),
-                              ),
-                              style: TextStyle(fontSize: 15),
-                            ).workaroundFreezeLinuxMint(),
-                          ),
+                          child: TextFormField(
+                            controller: model.serverPasswd,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding:
+                                  EdgeInsets.only(top: 14, bottom: 10),
+                            ),
+                            style: TextStyle(fontSize: 15),
+                          ).workaroundFreezeLinuxMint(),
                         ),
                       ),
-                      if (showPermanent)
-                        InkWell(
-                          onTap: () => revealed.value = !revealed.value,
-                          child: Tooltip(
-                            message: translate('Show/Hide Password'),
-                            child: Obx(() => Icon(
-                                revealed.value
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: textColor?.withOpacity(0.5),
-                                size: 22)),
-                          ).marginOnly(right: 8, top: 4),
-                        ),
                       if (showOneTime)
                         AnimatedRotationWidget(
                           onPressed: () => bind.mainUpdateTemporaryPassword(),
@@ -822,9 +699,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   void initState() {
     super.initState();
-    // 直接字符串判断（勿走 option2bool：未知 key 默认 true，语义反了）
-    stateGlobal.showAccountBoard.value =
-        bind.mainGetLocalOption(key: 'hide-account-board') != 'Y';
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
@@ -930,7 +804,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           password: call.arguments['password'],
           forceRelay: call.arguments['forceRelay'],
           connToken: call.arguments['connToken'],
-          loginMethod: call.arguments['loginMethod'] ?? '',
         );
       } else if (call.method == kWindowBumpMouse) {
         return RdPlatformChannel.instance.bumpMouse(
@@ -1026,10 +899,12 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
   final presetPassword = permanentPasswordSet && !localPasswordSet;
   var canSubmit = false;
   final RxString rxPass = "".obs;
-  // 只卡长度：出厂播种的 5 位码取自 CHARS（小写字母+数字，且可能整串都是字母），
-  // 保留数字/大写那几条会让应用自己生成的密码过不了自己的校验。
   final rules = [
-    MinCharactersValidationRule(5),
+    DigitValidationRule(),
+    UppercaseValidationRule(),
+    LowercaseValidationRule(),
+    // SpecialCharacterValidationRule(),
+    MinCharactersValidationRule(8),
   ];
   final maxLength = bind.mainMaxEncryptLen();
   final statusTip = localPasswordSet
