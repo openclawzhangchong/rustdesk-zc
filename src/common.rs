@@ -133,6 +133,10 @@ fn zc_seed_default_server() {
     let zc_hard_opts = [
         ("hide-powered-by-me", "Y"),
         ("disable-group-panel", "Y"),
+        // 账号登录与地址簿云同步已整体砍掉（用户决策 2026-11-15）：
+        // 自建 OSS 服务器不支持登录后的加密握手协议，入口存在只会产生无效报错。
+        ("disable-ab", "Y"),
+        ("disable-account", "Y"),
     ];
     for (k, v) in zc_hard_opts {
         hbb_common::config::BUILTIN_SETTINGS
@@ -153,12 +157,10 @@ fn zc_seed_default_server() {
     const ZC_ID_SERVER: &str = "47.119.167.86";
     const ZC_RELAY_SERVER: &str = "47.119.167.86";
     const ZC_KEY: &str = "L2ksXhK9ZSS+shd3p0J10Sb2BtZGb4vqr8KBHBswF38=";
-    const ZC_API_SERVER: &str = "https://zcdeskapi.jiuyeke.cn";
     for (k, v) in [
         ("custom-rendezvous-server", ZC_ID_SERVER),
         ("relay-server", ZC_RELAY_SERVER),
         ("key", ZC_KEY),
-        ("api-server", ZC_API_SERVER),
     ] {
         if hbb_common::config::Config::get_option(k).is_empty() {
             hbb_common::config::Config::set_option(k.to_owned(), v.to_owned());

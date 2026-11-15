@@ -725,4 +725,4 @@ const kCheckSoftwareUpdateFinish = 'check_software_update_finish';
 
 // 智策远控自己的产品版本号：自主版本线从 v2.0.0 起步（与上游 1.5.1 彻底区隔）。
 // 每次发版改这一行，并与 GitHub tag / CI 的 PRODUCT_VERSION（flutter-build.yml）同步。
-const kZcProductVersion = 'v2.1.1';
+const kZcProductVersion = 'v2.1.2';
