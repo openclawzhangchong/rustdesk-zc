@@ -662,9 +662,12 @@ class _GeneralState extends State<_General> {
       context,
       'Show account panel',
       'hide-account-board',
-      reverse: true,
       isServer: false,
-      update: (hide) => stateGlobal.showAccountBoard.value = !hide,
+      optGetter: () =>
+          bind.mainGetLocalOption(key: 'hide-account-board') != 'Y',
+      optSetter: (k, show) async => bind.mainSetLocalOption(
+          key: 'hide-account-board', value: show ? 'N' : 'Y'),
+      update: (show) => stateGlobal.showAccountBoard.value = show,
     ));
     if (!bind.isDisableAccount()) {
       children.add(_OptionCheckBox(

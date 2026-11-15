@@ -727,4 +727,4 @@ const kCheckSoftwareUpdateFinish = 'check_software_update_finish';
 // 一眼分清谁是我们的新版）。每次发版改这一行，并与 GitHub tag / CI 的
 // PRODUCT_VERSION（flutter-build.yml env 块）三处同步。
 // 基线 RustDesk 版本走 Cargo.toml（受 CI 的 --version 校验约束），两者刻意分开。
-const kZcProductVersion = 'v2.0.2';
+const kZcProductVersion = 'v2.0.3';

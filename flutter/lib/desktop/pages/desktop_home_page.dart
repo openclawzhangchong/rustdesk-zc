@@ -822,8 +822,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   void initState() {
     super.initState();
+    // 直接字符串判断（勿走 option2bool：未知 key 默认 true，语义反了）
     stateGlobal.showAccountBoard.value =
-        !mainGetLocalBoolOptionSync('hide-account-board');
+        bind.mainGetLocalOption(key: 'hide-account-board') != 'Y';
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
