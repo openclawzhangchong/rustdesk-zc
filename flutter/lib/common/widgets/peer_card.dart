@@ -281,6 +281,66 @@ class _PeerCardState extends State<_PeerCard>
     );
   }
 
+
+  /// 方案 B：卡片右上角收藏星标（点击切换收藏，不触发卡片选择/连接）
+  Widget _zcFavStar(Peer peer) {
+    // 收藏状态来自 Rust 侧 fav 列表（mainGetFav/mainStoreFav），与右键菜单同源
+    return FutureBuilder<List<String>>(
+      future: bind.mainGetFav(),
+      builder: (context, snap) {
+        final favs = snap.data ?? const <String>[];
+        final isFav = favs.contains(peer.id);
+        return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () async {
+          final list = (await bind.mainGetFav()).toList();
+          if (list.contains(peer.id)) {
+            list.remove(peer.id);
+          } else {
+            list.add(peer.id);
+          }
+          await bind.mainStoreFav(favs: list);
+          showToast(translate('Successful'));
+        },
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(isFav ? 0.4 : 0.18),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            isFav ? Icons.star : Icons.star_border,
+            size: 15,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+      },
+    );
+  }
+
+  /// 方案 B：卡片底部标签小块（最多 2 个）
+  List<Widget> _zcTagChips(BuildContext context, Peer peer) {
+    if (peer.tags.isEmpty) return const [];
+    final sub = Theme.of(context).textTheme.bodySmall?.color;
+    return peer.tags
+        .take(2)
+        .map((t) => Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: Theme.of(context).dividerColor.withOpacity(0.35),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(t,
+                  style: TextStyle(fontSize: 10, height: 1.3, color: sub)),
+            ))
+        .toList();
+  }
+
   Widget _buildPeerCard(
       BuildContext context, Peer peer, Rx<BoxDecoration?> deco) {
     hideUsernameOnCard ??=
@@ -306,8 +366,25 @@ class _PeerCardState extends State<_PeerCard>
               children: [
                 Expanded(
                   child: Container(
-                    color: str2color('${peer.id}${peer.platform}', 0x7f),
-                    child: Row(
+                    // 方案 B：在线 teal 渐变 / 离线灰渐变（原为按 ID 生成的纯色）
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: peer.online
+                            ? [const Color(0xFF2BBCA9), const Color(0xFF0D9488)]
+                            : [const Color(0xFFB3BBC2), const Color(0xFF8B959C)],
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        // 方案 B：悬浮收藏星标（右上角，收藏状态可见）
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: _zcFavStar(peer),
+                        ),
+                        Row(
                       children: [
                         Expanded(
                           child: Column(
@@ -359,6 +436,8 @@ class _PeerCardState extends State<_PeerCard>
                         ),
                       ],
                     ),
+                      ],
+                    ),
                   ),
                 ),
                 Container(
@@ -375,6 +454,8 @@ class _PeerCardState extends State<_PeerCard>
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleSmall,
                         )),
+                        // 方案 B：卡片标签（最多两个，原标签只做 hover 提示）
+                        ..._zcTagChips(context, peer),
                       ]).paddingSymmetric(vertical: 8)),
                       checkBoxOrActionMoreLandscape(peer, isTile: false),
                     ],
