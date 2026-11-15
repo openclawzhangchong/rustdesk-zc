@@ -84,7 +84,7 @@ env:
   VERSION: "1.5.1" # 上游基线版本：仅用于二进制 --version 自检（对照 Cargo.toml），不用于交付物命名
   # 智策远控交付物命名版本（exe/msi/apk/dmg 文件名）：与 flutter/lib/consts.dart
   # kZcProductVersion 同步修改，自主版本线从 v2.0.0 起步，与上游 1.5.1 区隔
-  PRODUCT_VERSION: "2.1.0"
+  PRODUCT_VERSION: "2.1.1"
   NDK_VERSION: "r28c"
   #signing keys env variable checks
   ANDROID_SIGNING_KEY: "${{ secrets.ANDROID_SIGNING_KEY }}"

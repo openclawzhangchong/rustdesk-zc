@@ -885,9 +885,17 @@ impl Client {
             }
         }
         if !exchanged && legacy_secure {
-            secure_tcp(&mut socket, &key)
-                .await
-                .map_err(|e| anyhow!("Failed to secure tcp: {}", e))?;
+            // 自建 OSS 服务器（rustdesk-server 1.1.x）不会主动发起 key exchange，
+            // 登录后的 token 会让客户端进入 secure 握手并死等 18s（READ_TIMEOUT）。
+            // 失败必须容忍并降级为明文 punch/relay：先重连 socket 再继续，
+            // 端到端加密（会话与对端）不受此影响。
+            if let Err(err) = secure_tcp(&mut socket, &key).await {
+                log::warn!(
+                    "secure tcp with rendezvous server failed (likely a legacy OSS server),                      reconnecting and continuing without server-side encryption: {}",
+                    err
+                );
+                socket = connect_tcp(&*rendezvous_server, CONNECT_TIMEOUT).await?;
+            }
         }
         // A token or switch code has always taken this socket straight to the punch without
         // waiting for the UDP NAT test. The WebRTC exchange does not replace that wait, it only
