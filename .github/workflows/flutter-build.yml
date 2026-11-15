@@ -12,6 +12,10 @@ on:
       publish-update-metadata:
         type: boolean
         default: false
+      build-android:
+        description: "Build Android APKs (set false for Windows-only delivery)"
+        type: boolean
+        default: true
     # 允许调用方通过 secrets: inherit 透传（Android 签名密钥等）
     secrets:
       ANDROID_SIGNING_KEY:
@@ -1525,6 +1529,7 @@ jobs:
           files: zcdesk-${{ env.PRODUCT_VERSION }}-unsigned.tar.gz
 
   build-rustdesk-android:
+    if: ${{ inputs.build-android != false }}
     needs: [generate-bridge]
     name: build rustdesk android apk ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
@@ -1828,6 +1833,7 @@ jobs:
             signed-apk/zcdesk-${{ env.PRODUCT_VERSION }}-${{ matrix.job.arch }}.apk
 
   build-rustdesk-android-universal:
+    if: ${{ inputs.build-android != false }}
     needs: [build-rustdesk-android]
     name: build rustdesk android universal apk
     runs-on: ubuntu-24.04
