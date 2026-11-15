@@ -18,6 +18,7 @@ import '../../common.dart';
 import '../../common/formatter/id_formatter.dart';
 import '../../common/widgets/peer_tab_page.dart';
 import '../../common/widgets/autocomplete.dart';
+import '../../common/widgets/request_approval_menu.dart';
 import '../../models/platform_model.dart';
 import '../../desktop/widgets/material_mod_popup_menu.dart' as mod_menu;
 
@@ -155,15 +156,30 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
 
   _buildConnStatusMsg() {
     widget.onSvcStatusChanged?.call();
-    return Text(
-      _svcStopped.value
-          ? translate("Service is not running")
-          : stateGlobal.svcStatus.value == SvcStatus.connecting
-              ? translate("connecting_status")
-              : stateGlobal.svcStatus.value == SvcStatus.notReady
-                  ? translate("not_ready_status")
-                  : translate('Ready'),
-      style: TextStyle(fontSize: em),
+    // 产品版本号常驻底部状态栏（用户要求）：就绪状态旁始终可见
+    return Text.rich(
+      TextSpan(
+        text: _svcStopped.value
+            ? translate("Service is not running")
+            : stateGlobal.svcStatus.value == SvcStatus.connecting
+                ? translate("connecting_status")
+                : stateGlobal.svcStatus.value == SvcStatus.notReady
+                    ? translate("not_ready_status")
+                    : translate('Ready'),
+        style: TextStyle(fontSize: em),
+        children: [
+          TextSpan(
+            text: '  $kZcProductVersion',
+            style: TextStyle(
+                fontSize: em * 0.85,
+                color: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.color
+                    ?.withOpacity(0.55)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -310,15 +326,16 @@ class _ConnectionPageState extends State<ConnectionPage>
             child: Column(
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Flexible(child: _buildRemoteIDTextField(context)),
               ],
-            ).marginOnly(top: 22),
-            SizedBox(height: 12),
-            Divider().paddingOnly(right: 12),
+            ).marginOnly(top: 34, bottom: 6),
+            SizedBox(height: 10),
+            Divider().paddingOnly(right: 12, left: 12),
             Expanded(child: PeerTabPage()),
           ],
-        ).paddingOnly(left: 12.0)),
+        ).paddingOnly(left: 12.0, right: 12.0)),
         if (!isOutgoingOnly) const Divider(height: 1),
         if (!isOutgoingOnly) OnlineStatusWidget()
       ],
@@ -340,15 +357,54 @@ class _ConnectionPageState extends State<ConnectionPage>
         isTcpTunneling: isTcpTunneling);
   }
 
+  RequestApprovalMenu _requestApprovalMenu(BuildContext context) {
+    MenuEntryButton<String> action(String title,
+            {bool isFileTransfer = false,
+            bool isViewCamera = false,
+            bool isTerminal = false,
+            bool isTcpTunneling = false}) =>
+        MenuEntryButton<String>(
+          childBuilder: (style) => Text(translate(title), style: style),
+          proc: () => connect(context, _idController.id,
+              loginMethod: 'request-approval',
+              isFileTransfer: isFileTransfer,
+              isViewCamera: isViewCamera,
+              isTerminal: isTerminal,
+              isTcpTunneling: isTcpTunneling),
+          padding: EdgeInsets.symmetric(horizontal: kDesktopMenuPadding.left),
+          dismissOnClicked: true,
+        );
+
+    return RequestApprovalMenu(
+      title: translate('Request approval'),
+      padding: EdgeInsets.symmetric(horizontal: kDesktopMenuPadding.left),
+      arrowScale: MenuConfig.iconScale,
+      entries: [
+        action('Connect'),
+        action('Transfer file', isFileTransfer: true),
+        action('View camera', isViewCamera: true),
+        action('${translate('Terminal')} (beta)', isTerminal: true),
+        if (isDesktop) action('TCP tunneling', isTcpTunneling: true),
+      ],
+    );
+  }
+
   /// UI for the remote ID TextField.
   /// Search for a peer.
   Widget _buildRemoteIDTextField(BuildContext context) {
     var w = Container(
-      width: 320 + 20 * 2,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+      width: 420 + 20 * 2,
+      padding: const EdgeInsets.fromLTRB(20, 26, 20, 24),
       decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(13)),
-          border: Border.all(color: Theme.of(context).colorScheme.background)),
+          borderRadius: const BorderRadius.all(Radius.circular(16)),
+          border: Border.all(
+              color: MyTheme.accent.withOpacity(0.45), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4)),
+          ]),
       child: Ink(
         child: Column(
           children: [
@@ -579,7 +635,8 @@ class _ConnectionPageState extends State<ConnectionPage>
                                         () => onConnect(isTcpTunneling: true)
                                       ),
                                   ]
-                                      .map((e) => MenuEntryButton<String>(
+                                      .map<MenuEntryBase<String>>(
+                                          (e) => MenuEntryButton<String>(
                                             childBuilder: (TextStyle? style) =>
                                                 Text(
                                               translate(e.$1),
@@ -591,6 +648,10 @@ class _ConnectionPageState extends State<ConnectionPage>
                                                     kDesktopMenuPadding.left),
                                             dismissOnClicked: true,
                                           ))
+                                      .followedBy([
+                                        MenuEntryDivider<String>(),
+                                        _requestApprovalMenu(context),
+                                      ])
                                       .map((e) => e.build(
                                           context,
                                           const MenuConfig(

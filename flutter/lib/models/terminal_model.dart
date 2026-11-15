@@ -10,7 +10,7 @@ import 'package:xterm/xterm.dart';
 import 'input_modifier_utils.dart';
 import 'model.dart';
 import 'platform_model.dart';
-import 'rustdesk_terminal.dart';
+import 'zc_terminal.dart';
 import 'terminal_copy_shortcut.dart';
 import 'terminal_mouse_handler.dart';
 
@@ -159,7 +159,7 @@ class TerminalModel with ChangeNotifier {
   }
 
   TerminalModel(this.parent, [this.terminalId = 0]) : id = parent.id {
-    terminal = RustDeskTerminal(
+    terminal = ZcTerminal(
       maxLines: 10000,
       onClipboardWrite: writeTerminalClipboard,
       clipboardWritePermission: () => terminalClipboardWritePermission(

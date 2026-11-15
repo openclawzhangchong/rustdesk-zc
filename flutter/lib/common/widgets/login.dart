@@ -8,6 +8,7 @@ import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/user_model.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../common.dart';
@@ -636,6 +637,7 @@ class LoginWidgetUserPass extends StatelessWidget {
   final bool isInProgress;
   final RxString curOP;
   final Function() onLogin;
+  final Function()? onRegister;
   final FocusNode? userFocusNode;
   const LoginWidgetUserPass({
     Key? key,
@@ -647,6 +649,7 @@ class LoginWidgetUserPass extends StatelessWidget {
     required this.isInProgress,
     required this.curOP,
     required this.onLogin,
+    this.onRegister,
   }) : super(key: key);
 
   @override
@@ -691,6 +694,21 @@ class LoginWidgetUserPass extends StatelessWidget {
                     )),
               ),
             ])),
+            // 注册按钮（用户要求）：没有账号直接注册，注册成功即自动登录
+            if (onRegister != null)
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Obx(() => TextButton(
+                      onPressed: curOP.value.isEmpty && !isInProgress
+                          ? () {
+                              onRegister?.call();
+                            }
+                          : null,
+                      child: Text(
+                        translate('Create Account'),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    )),
+              ]),
           ],
         ));
   }
@@ -856,6 +874,50 @@ Future<bool?> _openLoginDialog() async {
       setState(() => isInProgress = false);
     }
 
+    // 注册：调自建 API 的 /api/register，成功即自动登录（服务端返回 token + user）
+    onRegister() async {
+      if (curOP.value.isNotEmpty || isInProgress) {
+        return;
+      }
+      if (username.text.isEmpty) {
+        setState(() => usernameMsg = translate('Username missed'));
+        return;
+      }
+      if (password.text.isEmpty) {
+        setState(() => passwordMsg = translate('Password missed'));
+        return;
+      }
+      curOP.value = 'rustdesk';
+      setState(() => isInProgress = true);
+      try {
+        final apiServer = await bind.mainGetApiServer();
+        final resp = await http.post(
+          Uri.parse('$apiServer/api/register'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'username': username.text,
+            'password': password.text,
+            'id': await bind.mainGetMyId(),
+            'uuid': await bind.mainGetUuid(),
+          }),
+        );
+        final Map<String, dynamic> body = jsonDecode(resp.body);
+        if (resp.statusCode >= 200 && resp.statusCode < 300) {
+          final regResp = LoginResponse.fromJson(body);
+          // 注册成功即登录：与登录成功同路径（存 token、更新用户模型、关框）
+          await handleLoginResponse(regResp, true, close);
+          return;
+        } else {
+          passwordMsg = body['error']?.toString() ??
+              '${translate('Registration failed')} (${resp.statusCode})';
+        }
+      } catch (err) {
+        passwordMsg = "Unknown Error: $err";
+      }
+      curOP.value = '';
+      setState(() => isInProgress = false);
+    }
+
     thirdAuthWidget() => Obx(() {
           final error = loginOptionsError.value;
           final inProgress = loginOptionsInProgress.value;
@@ -981,6 +1043,7 @@ Future<bool?> _openLoginDialog() async {
             usernameMsg: usernameMsg,
             passMsg: passwordMsg,
             isInProgress: isInProgress,
+            onRegister: onRegister,
             curOP: curOP,
             onLogin: onLogin,
             userFocusNode: userFocusNode,

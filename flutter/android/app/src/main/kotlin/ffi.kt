@@ -5,11 +5,11 @@ package ffi
 import android.content.Context
 import java.nio.ByteBuffer
 
-import com.carriez.flutter_hbb.RdClipboardManager
+import cn.jiuyeke.zcdesk.RdClipboardManager
 
 object FFI {
     init {
-        System.loadLibrary("rustdesk")
+        System.loadLibrary("zcdesk")
     }
 
     external fun init(ctx: Context)

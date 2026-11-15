@@ -25,6 +25,9 @@ const kUseTemporaryPassword = "use-temporary-password";
 const kUsePermanentPassword = "use-permanent-password";
 const kUseBothPasswords = "use-both-passwords";
 
+// 固定密码在 RustDesk 里只存 storage+salt、读不回明文，卡片显示的是这份副本。
+const kZcPermanentPasswordHint = "zc-pw-hint";
+
 class ServerModel with ChangeNotifier {
   bool _isStart = false; // Android MainService status
   bool _mediaOk = false;
@@ -83,6 +86,9 @@ class ServerModel with ChangeNotifier {
   }
 
   String get approveMode => _approveMode;
+
+  bool get showsPermanentPassword =>
+      verificationMethod == kUsePermanentPassword;
 
   setVerificationMethod(String method) async {
     await bind.mainSetOption(key: kOptionVerificationMethod, value: method);
@@ -248,9 +254,10 @@ class ServerModel with ChangeNotifier {
     }
     var stopped = await mainGetBoolOption(kOptionStopService);
     final oldPwdText = _serverPasswd.text;
-    if (stopped ||
-        verificationMethod == kUsePermanentPassword ||
-        _approveMode == 'click') {
+    if (verificationMethod == kUsePermanentPassword && !stopped) {
+      final hint = bind.mainGetLocalOption(key: kZcPermanentPasswordHint);
+      _serverPasswd.text = hint.isEmpty ? '-' : hint;
+    } else if (stopped || _approveMode == 'click') {
       _serverPasswd.text = '-';
     } else {
       if (_serverPasswd.text != temporaryPassword &&

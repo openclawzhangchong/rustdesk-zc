@@ -170,8 +170,12 @@ class _PeerTabPageState extends State<PeerTabPage>
                         decoration: (hover.value
                             ? (selected ? decoBorder : deco)
                             : (selected ? decoBorder : null)),
-                        child: Icon(model.tabIcon(t), color: color)
-                            .paddingSymmetric(horizontal: 4),
+                        // 图标换文字（用户要求）：五个 tab 直接显示中文标签
+                        child: Text(
+                          translate(PeerTabModel.tabNames[t]),
+                          style: TextStyle(
+                              fontSize: 14, height: 1, color: color),
+                        ).paddingSymmetric(horizontal: 8, vertical: 6),
                       ).paddingSymmetric(horizontal: 4),
                       onTap: isOptionFixed(kOptionPeerTabIndex)
                           ? null

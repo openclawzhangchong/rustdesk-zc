@@ -120,7 +120,54 @@ impl Drop for SimpleCallOnReturn {
     }
 }
 
+/// ZC custom build (智策远控 zcdesk): brand as 智策远控 and prefill our
+/// self-hosted server / API on first run. Only fills empty options so
+/// user-side overrides keep working. NO experimental punch/webrtc toggles
+/// here — connection path must stay identical to official 1.5.1 release.
+fn zc_seed_default_server() {
+    if hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk") {
+        *hbb_common::config::APP_NAME.write().unwrap() = "智策远控".to_owned();
+    }
+    // 品牌 UI 开关：隐藏 "Powered by" 与群组面板（群组数据源暂无，避免红条）。
+    // 登录/地址簿入口保持可见（自建 API 支持账号登录与地址簿云同步）。
+    let zc_hard_opts = [
+        ("hide-powered-by-me", "Y"),
+        ("disable-group-panel", "Y"),
+    ];
+    for (k, v) in zc_hard_opts {
+        hbb_common::config::BUILTIN_SETTINGS
+            .write()
+            .unwrap()
+            .insert(k.to_owned(), v.to_owned());
+        hbb_common::config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert(k.to_owned(), v.to_owned());
+    }
+    // Android 客户端：只允许控制别人，不允许被别人控制（安全 + 减少杀软误报）
+    #[cfg(target_os = "android")]
+    hbb_common::config::HARD_SETTINGS
+        .write()
+        .unwrap()
+        .insert("conn-type".to_owned(), "outgoing".to_owned());
+    const ZC_ID_SERVER: &str = "47.119.167.86";
+    const ZC_RELAY_SERVER: &str = "47.119.167.86";
+    const ZC_KEY: &str = "L2ksXhK9ZSS+shd3p0J10Sb2BtZGb4vqr8KBHBswF38=";
+    const ZC_API_SERVER: &str = "https://zcdeskapi.jiuyeke.cn";
+    for (k, v) in [
+        ("custom-rendezvous-server", ZC_ID_SERVER),
+        ("relay-server", ZC_RELAY_SERVER),
+        ("key", ZC_KEY),
+        ("api-server", ZC_API_SERVER),
+    ] {
+        if hbb_common::config::Config::get_option(k).is_empty() {
+            hbb_common::config::Config::set_option(k.to_owned(), v.to_owned());
+        }
+    }
+}
+
 pub fn global_init() -> bool {
+    zc_seed_default_server();
     #[cfg(all(target_os = "linux", feature = "drm"))]
     crate::platform::linux::dispatch_wayland_display_probe();
     #[cfg(target_os = "linux")]
