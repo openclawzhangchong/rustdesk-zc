@@ -56,6 +56,26 @@ class PeerTabModel with ChangeNotifier {
       List.generate(maxTabCount, (index) => index, growable: false);
   List<int> get visibleEnabledOrderedIndexs =>
       orders.where((e) => isVisibleEnabled[e]).toList();
+  // 主页方案 B：设备列表在线状态筛选（all / online / offline）
+  // 放在模型里便于侧栏/工具栏/列表三处共享。
+  String _statusFilter = 'all';
+  String get statusFilter => _statusFilter;
+  void setStatusFilter(String v) {
+    if (v == _statusFilter) return;
+    _statusFilter = v;
+    notifyListeners();
+  }
+
+  /// 按在线状态过滤（供 PeersView 使用）
+  List<Peer> applyStatusFilter(List<Peer> peers) {
+    if (_statusFilter == 'online') {
+      return peers.where((p) => p.online).toList();
+    } else if (_statusFilter == 'offline') {
+      return peers.where((p) => !p.online).toList();
+    }
+    return peers;
+  }
+
   List<Peer> _selectedPeers = List.empty(growable: true);
   List<Peer> get selectedPeers => _selectedPeers;
   bool _multiSelectionMode = false;

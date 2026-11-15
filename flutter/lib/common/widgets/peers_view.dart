@@ -236,6 +236,33 @@ class _PeersViewState extends State<_PeersView>
           if (snapshot.hasData) {
             var peers = snapshot.data!;
             if (peers.length > 1000) peers = peers.sublist(0, 1000);
+            // 主页方案 B：在线/离线筛选（与工具栏联动，走 PeerTabModel 状态）
+            if (gFFI.peerTabModel.statusFilter != 'all') {
+              peers = gFFI.peerTabModel.applyStatusFilter(peers);
+              if (peers.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.sentiment_very_dissatisfied_rounded,
+                        color: Theme.of(context).tabBarTheme.labelColor,
+                        size: 40,
+                      ).paddingOnly(bottom: 10),
+                      Text(
+                        gFFI.peerTabModel.statusFilter == 'online'
+                            ? translate('No online devices')
+                            : translate('No offline devices'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).tabBarTheme.labelColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            }
             gFFI.peerTabModel.setCurrentTabCachedPeers(peers);
             buildOnePeer(Peer peer, bool isPortrait) {
               final visibilityChild = VisibilityDetector(

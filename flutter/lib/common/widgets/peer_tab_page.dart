@@ -110,27 +110,62 @@ class _PeerTabPageState extends State<PeerTabPage>
       textBaseline: TextBaseline.ideographic,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Obx(() => SizedBox(
-              height: 32,
-              child: Container(
-                padding: stateGlobal.isPortrait.isTrue
-                    ? EdgeInsets.symmetric(horizontal: 2)
-                    : null,
-                child: selectionWrap(Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                        child: visibleContextMenuListener(
-                            _createSwitchBar(context))),
-                    if (stateGlobal.isPortrait.isTrue)
-                      ..._portraitRightActions(context)
-                    else
-                      ..._landscapeRightActions(context)
-                  ],
-                )),
-              ),
-            ).paddingOnly(right: stateGlobal.isPortrait.isTrue ? 0 : 12)),
-        _createPeersView(),
+        if (isDesktop && !isWebDesktop)
+          // ===== 主页方案 B：左侧分组导航 + 右侧工具栏与设备列表 =====
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _zcBuildSideNav(model),
+                Expanded(
+                  child: Column(
+                    textBaseline: TextBaseline.ideographic,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 38,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: selectionWrap(Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              ..._zcStatusChips(model),
+                              const Spacer(),
+                              ..._landscapeRightActions(context),
+                            ],
+                          )),
+                        ),
+                      ).paddingOnly(right: 12),
+                      _createPeersView(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          Obx(() => SizedBox(
+                height: 32,
+                child: Container(
+                  padding: stateGlobal.isPortrait.isTrue
+                      ? EdgeInsets.symmetric(horizontal: 2)
+                      : null,
+                  child: selectionWrap(Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                          child: visibleContextMenuListener(
+                              _createSwitchBar(context))),
+                      if (stateGlobal.isPortrait.isTrue)
+                        ..._portraitRightActions(context)
+                      else
+                        ..._landscapeRightActions(context)
+                    ],
+                  )),
+                ),
+              ).paddingOnly(right: stateGlobal.isPortrait.isTrue ? 0 : 12)),
+          _createPeersView(),
+        ],
       ],
     );
   }
@@ -188,6 +223,120 @@ class _PeerTabPageState extends State<PeerTabPage>
                     ),
                   )));
         }).toList());
+  }
+
+
+  // ===== 主页方案 B：左侧分组导航（设备列表数据源，去掉无数据源的"群组"）=====
+  Widget _zcBuildSideNav(PeerTabModel model) {
+    final textColor = Theme.of(context).textTheme.titleLarge?.color;
+    final subColor = Theme.of(context).textTheme.bodySmall?.color;
+    final all = model.isVisibleEnabled;
+    final order = <int>[
+      PeerTabIndex.fav.index,
+      PeerTabIndex.recent.index,
+      PeerTabIndex.lan.index,
+      PeerTabIndex.ab.index,
+    ].where((i) => i < all.length && all[i]).toList();
+    return Container(
+      width: 148,
+      decoration: BoxDecoration(
+        border: Border(
+          right:
+              BorderSide(color: Theme.of(context).dividerColor.withOpacity(.35)),
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        children: [
+          Text(
+            translate('Device list'),
+            style: TextStyle(
+                fontSize: 11.5,
+                letterSpacing: .6,
+                color: subColor?.withOpacity(.75)),
+          ).marginOnly(left: 8, bottom: 6),
+          ...order.map((t) {
+            final selected = model.currentTab == t;
+            return InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: isOptionFixed(kOptionPeerTabIndex)
+                  ? null
+                  : () async {
+                      await handleTabSelection(t);
+                      await bind.setLocalFlutterOption(
+                          k: kOptionPeerTabIndex, v: t.toString());
+                    },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 2),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? MyTheme.accent.withOpacity(.10)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Icon(PeerTabModel.icons[t],
+                            size: 16,
+                            color: selected ? MyTheme.accent : subColor)
+                        .marginOnly(left: 8, right: 6),
+                    Expanded(
+                      child: Text(
+                        translate(PeerTabModel.tabNames[t]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.1,
+                          color: selected ? MyTheme.accent : textColor,
+                          fontWeight:
+                              selected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ===== 主页方案 B：在线/离线筛选 chips =====
+  List<Widget> _zcStatusChips(PeerTabModel model) {
+    final subColor = Theme.of(context).textTheme.bodySmall?.color;
+    Widget chip(String key, String label) {
+      final selected = model.statusFilter == key;
+      return InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => model.setStatusFilter(key),
+        child: Container(
+          margin: const EdgeInsets.only(right: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? MyTheme.accent.withOpacity(.10) : null,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: selected ? MyTheme.accent : subColor,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return [
+      chip('all', translate('All')),
+      chip('online', translate('Online')),
+      chip('offline', translate('Offline')),
+    ];
   }
 
   Widget _createPeersView() {
