@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_hbb/consts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -31,6 +32,27 @@ Widget getConnectionPageTitle(BuildContext context, bool isWeb) {
                   ?.withOpacity(0.5),
             ),
           ),
+          // 产品版本号常驻主页标题旁（用户硬性要求：主页必须能一眼看出装的哪一版）
+          Tooltip(
+            waitDuration: Duration(milliseconds: 300),
+            message: '${translate('Product Version')}: $kZcProductVersion',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: MyTheme.accent.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: MyTheme.accent.withOpacity(0.35)),
+              ),
+              child: Text(
+                kZcProductVersion,
+                style: TextStyle(
+                    fontSize: 12,
+                    height: 1.2,
+                    fontWeight: FontWeight.w500,
+                    color: MyTheme.accent),
+              ),
+            ),
+          ).marginOnly(left: 6),
         ],
       )),
     ],
