@@ -899,12 +899,11 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
   final presetPassword = permanentPasswordSet && !localPasswordSet;
   var canSubmit = false;
   final RxString rxPass = "".obs;
+  // 智策远控：固定密码规则简化为「5 位数字」（用户要求，便于口头告知对方）。
+  // 原规则为 8 位以上 + 大小写字母 + 数字，对自用场景过重。
   final rules = [
     DigitValidationRule(),
-    UppercaseValidationRule(),
-    LowercaseValidationRule(),
-    // SpecialCharacterValidationRule(),
-    MinCharactersValidationRule(8),
+    MinCharactersValidationRule(5),
   ];
   final maxLength = bind.mainMaxEncryptLen();
   final statusTip = localPasswordSet
