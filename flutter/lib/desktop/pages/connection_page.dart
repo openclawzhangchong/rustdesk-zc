@@ -156,12 +156,16 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
 
   _buildConnStatusMsg() {
     widget.onSvcStatusChanged?.call();
+    // 未就绪时给出可操作提示（而非只有一句"请检查网络连接"）：
+    // 常见原因是后台服务未运行，直接引导用户到"启动服务"。
+    final notReady = !_svcStopped.value &&
+        stateGlobal.svcStatus.value == SvcStatus.notReady;
     final statusText = _svcStopped.value
         ? translate("Service is not running")
         : stateGlobal.svcStatus.value == SvcStatus.connecting
             ? translate("connecting_status")
-            : stateGlobal.svcStatus.value == SvcStatus.notReady
-                ? translate("not_ready_status")
+            : notReady
+                ? '${translate("not_ready_status")} · ${translate("Start service")}?'
                 : translate('Ready');
     // 产品版本号常驻底部状态栏（用户硬性要求：主页必须一眼看出装的哪一版）
     return Text.rich(
