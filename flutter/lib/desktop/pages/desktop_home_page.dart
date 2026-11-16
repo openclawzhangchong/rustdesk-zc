@@ -311,8 +311,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 智策远控：标题跟随实际生效的密码类型
+                  // （固定密码模式显示"固定密码"，否则显示"一次性密码"）
                   AutoSizeText(
-                    translate("One-time Password"),
+                    translate(
+                        showOneTime ? "One-time Password" : "Permanent Password"),
                     style: TextStyle(
                         fontSize: 14, color: textColor?.withOpacity(0.5)),
                     maxLines: 1,

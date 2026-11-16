@@ -323,6 +323,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Translate mode", "翻译模式"),
         ("Use permanent password", "使用固定密码"),
         ("Permanent Password", "固定密码"),
+        ("Password is set", "已设置（隐藏）"),
         ("Show/Hide Password", "显示/隐藏密码"),
         ("Use both passwords", "同时使用两种密码"),
         ("Set permanent password", "设置固定密码"),

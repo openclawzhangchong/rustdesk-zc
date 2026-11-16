@@ -251,7 +251,13 @@ class ServerModel with ChangeNotifier {
     if (stopped ||
         verificationMethod == kUsePermanentPassword ||
         _approveMode == 'click') {
-      _serverPasswd.text = '-';
+      // 固定密码只存哈希、读不回明文；停服/点击确认模式下同样无一次性密码。
+      // 显示说明文字而非裸"-"，避免用户以为密码丢了。
+      _serverPasswd.text = stopped
+          ? '-'
+          : (verificationMethod == kUsePermanentPassword
+              ? translate('Password is set')
+              : '-');
     } else {
       if (_serverPasswd.text != temporaryPassword &&
           temporaryPassword.isNotEmpty) {
