@@ -40,6 +40,22 @@
 
 ---
 
+## ✅ 当前稳定版
+
+| 项 | 值 |
+|---|---|
+| **稳定版版本** | **v2.2.0** |
+| 交付物 | `zcdesk-2.2.0-x86_64.msi`（安装器）、`zcdesk-2.2.0-x86_64.exe`（便携版） |
+| 平台 | Windows x64（Android 需显式传 `build-android=true`） |
+| Release | `v2.2.0` |
+| 已验证 | 安装 ✓ 主页版本号可见 ✓ 连接被控端（加密中继）✓ 配置干净（无登录 token）✓ |
+
+> **分不清版本怎么办**：程序主页有三处版本号——标题旁徽标、底部状态栏「就绪 vX.Y.Z」、
+> 手机顶栏应用名后。看一眼就知道装的是哪版。
+
+> 📦 **打包流程**：见 [docs/ZC-BUILD-GUIDE.md](docs/ZC-BUILD-GUIDE.md)
+> ——云端 CI 一键派发、参数说明、常见失败与修法、出包后验收清单，全部固化在仓库里。
+
 <p align="center">
   <img src="res/logo-header.svg" alt="RustDesk - Your remote desktop"><br>
   <a href="#raw-steps-to-build">Build</a> •
