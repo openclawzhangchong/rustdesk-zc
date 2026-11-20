@@ -148,7 +148,11 @@ class _PeerCardState extends State<_PeerCard>
       children: [
         Container(
             decoration: BoxDecoration(
-              color: str2color('${peer.id}${peer.platform}', 0x7f),
+              color: peer.online
+                  ? MyTheme.accent.withOpacity(0.85)
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3A3B41)
+                      : const Color(0xFFC9CDD4)),
               borderRadius: isPortrait
                   ? BorderRadius.circular(_tileRadius)
                   : BorderRadius.only(
@@ -366,13 +370,13 @@ class _PeerCardState extends State<_PeerCard>
               children: [
                 Expanded(
                   child: Container(
-                    // 方案 B：在线 teal 渐变 / 离线灰渐变（原为按 ID 生成的纯色）
+                    // 方案 B：在线 coral 渐变 / 离线灰渐变（原为按 ID 生成的纯色）
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: peer.online
-                            ? [const Color(0xFF2BBCA9), const Color(0xFF0D9488)]
+                            ? [const Color(0xFFFF8159), const Color(0xFFE4502A)]
                             : [const Color(0xFFB3BBC2), const Color(0xFF8B959C)],
                       ),
                     ),
