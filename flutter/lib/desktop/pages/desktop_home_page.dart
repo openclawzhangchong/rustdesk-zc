@@ -106,17 +106,17 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               width: 1,
               color: dark
                   ? const Color(0xFF2E2F35)
-                  : const Color(0xFFE5E6EB)),
+                  : const Color(0xFFE3E8EF)),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+            padding: const EdgeInsets.fromLTRB(16, 16, 12, 18),
             child: Row(
               children: [
-                SvgPicture.asset('assets/zc-logo-coral.svg',
+                SvgPicture.asset('assets/zc-logo-brand.svg',
                     width: 26, height: 26),
                 const SizedBox(width: 8),
                 Expanded(
@@ -125,6 +125,25 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: titleColor)),
+                ),
+                IconButton(
+                  icon: Icon(
+                      MyTheme.currentThemeMode() == ThemeMode.dark
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
+                      size: 18),
+                  tooltip: MyTheme.currentThemeMode() == ThemeMode.dark
+                      ? translate('Light Theme')
+                      : translate('Dark Theme'),
+                  splashRadius: 16,
+                  color: titleColor?.withOpacity(0.6),
+                  onPressed: () async {
+                    final dark =
+                        MyTheme.currentThemeMode() == ThemeMode.dark;
+                    await MyTheme.changeDarkMode(
+                        dark ? ThemeMode.light : ThemeMode.dark);
+                    setState(() {});
+                  },
                 ),
               ],
             ),
@@ -264,7 +283,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       border: Border.all(
           color: dark
               ? Colors.white.withOpacity(0.07)
-              : const Color(0xFFE5E6EB)),
+              : const Color(0xFFE3E8EF)),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(dark ? 0.28 : 0.04),
@@ -387,7 +406,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final muted = theme.textTheme.titleLarge?.color?.withOpacity(0.55);
     final idController = Get.find<IDTextEditingController>();
     final fieldFill =
-        dark ? const Color(0xFF1B1C21) : const Color(0xFFF2F3F5);
+        dark ? const Color(0xFF161A20) : const Color(0xFFF1F5F9);
     final fieldBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(4),
       borderSide: BorderSide.none,
