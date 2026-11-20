@@ -126,24 +126,23 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                           fontWeight: FontWeight.w600,
                           color: titleColor)),
                 ),
-                IconButton(
-                  icon: Icon(
-                      MyTheme.currentThemeMode() == ThemeMode.dark
-                          ? Icons.light_mode_outlined
-                          : Icons.dark_mode_outlined,
-                      size: 18),
-                  tooltip: MyTheme.currentThemeMode() == ThemeMode.dark
-                      ? translate('Light Theme')
-                      : translate('Dark Theme'),
-                  splashRadius: 16,
-                  color: titleColor?.withOpacity(0.6),
-                  onPressed: () async {
-                    final dark =
-                        MyTheme.currentThemeMode() == ThemeMode.dark;
-                    await MyTheme.changeDarkMode(
-                        dark ? ThemeMode.light : ThemeMode.dark);
-                    setState(() {});
-                  },
+                Container(
+                  decoration: BoxDecoration(
+                    color: dark
+                        ? Colors.white.withOpacity(0.06)
+                        : const Color(0xFFEEF2F7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.all(2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _themeBtn(context, Icons.dark_mode_outlined,
+                          'Dark Theme', ThemeMode.dark),
+                      _themeBtn(context, Icons.light_mode_outlined,
+                          'Light Theme', ThemeMode.light),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -164,6 +163,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               child: Text(systemError,
                   style: const TextStyle(fontSize: 12, color: Color(0xFFF04A4A))),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: Text('作者：张翀',
+                style: TextStyle(
+                    fontSize: 11, color: titleColor?.withOpacity(0.45))),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: OnlineStatusWidget(),
@@ -232,6 +237,38 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               Text(label, style: TextStyle(fontSize: 14, color: color)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _themeBtn(
+      BuildContext context, IconData icon, String tip, ThemeMode mode) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final active = MyTheme.currentThemeMode() == mode;
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: () async {
+        await MyTheme.changeDarkMode(mode);
+        setState(() {});
+      },
+      child: Tooltip(
+        message: translate(tip),
+        child: Container(
+          width: 26,
+          height: 24,
+          decoration: BoxDecoration(
+            color: active
+                ? MyTheme.accent.withOpacity(dark ? 0.25 : 0.14)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon,
+              size: 15,
+              color: active
+                  ? MyTheme.accent
+                  : theme.textTheme.titleLarge?.color?.withOpacity(0.45)),
         ),
       ),
     );
