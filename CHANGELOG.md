@@ -37,6 +37,30 @@
 > **打包流程全部固化在 [docs/ZC-BUILD-GUIDE.md](docs/ZC-BUILD-GUIDE.md)**
 > （前置条件、参数、6 类常见失败修法、验收清单）——下次重启云端打包照该文档执行。
 
+## v2.2.1（采集自愈：修远程画面间歇性空白 / 微信二维码看不见）
+
+- 修复：被控端 DXGI 采集反复 `ACCESS_LOST` 时远程画面冻结/空白。旧恢复逻辑只在
+  10 秒窗口内累计 3 次重试才回退 GDI，而部分显卡驱动（GPU-P 虚拟机等）每隔约 30 秒
+  才丢一次访问，窗口每次过期清零 → 无限重建 DXGI、长时间无帧
+- 新增跨窗口"连丢计数"：两次间隔超窗的 access lost 之间没有任何成功帧即钉住 GDI
+  采集；成功送达一帧即清零，健康机器行为不变（突发 3 次重试上限保留）
+- 修复：GDI 采集读不到微信等硬件渲染窗口内容（登录二维码白窗）。实测因果：活动输出
+  为显卡物理输出时 DWM 走硬件合成路径，GDI 屏幕 DC 读不到；软件间接显示（IDD）激活
+  时合成面 GDI 全可读。新增"自动兼容采集"：GDI 回退触发时（含服务形态下采集创建即
+  静默回退 GDI 的路径）后台安装/插入自带签名 usbmmidd 虚拟显示，优先 clone 镜像
+  （物理屏保持同画面），clone 被驱动拒绝则 IDD 设主显示；已有间接显示活动（如向日葵
+  遗留）则跳过；健康机器 DXGI 正常 → 零影响。兼容拓扑生效期间采集钉住 GDI——实测
+  IDD 下仅 GDI 合成面可读，DXGI duplication 仍读不到硬件渲染窗口（远程白窗的最后一环）
+- 回归测试 7 个：间隔丢访问回退 / 成功帧保留 DXGI / 突发上限不变 / 间接显示已活动跳过 /
+  clone 优先与 IDD 主显示回退策略 / 兼容默认关闭（健康机器不钉 GDI）/ 既有 refresh 测试；
+  spaced 测试在 master 上 fail 已实锤
+- 诊断、实验矩阵与回归面见 `docs/zc-v2.0.4-dxgi-fallback-plan.md`（zc-custom 线的诊断
+  记录，修复已原样移植到本线；该线 v2.0.4 提交 b6f5ee781 留作历史、不发 Release）
+- 配套入库：知识库 `kb/zcdesk-gdi-idd-capture-compat.md`（机制+踩坑）与
+  `kb/zcdesk-login-token-oss-server-deadlock.md`（补回铁律引用缺失篇）；交接单
+  `handoff/v2.2.1-handoff.md`；`test/` 新增 verify-capture.sh / run-regression-tests.sh /
+  probe-qr.py / probe-topo.py / README.md 索引；README 增「定制能力」「测试与知识库」区块
+
 ## v2.2.0（主页方案 B 改版 + 密码体验 + 稳定版）
 
 ### 主页方案 B（按设计稿分两阶段实施）

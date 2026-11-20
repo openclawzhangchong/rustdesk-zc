@@ -72,6 +72,8 @@ const DXGI_RECOVERY_LIMIT: usize = 3;
 const DXGI_RECOVERY_WINDOW: Duration = Duration::from_secs(10);
 #[cfg(windows)]
 const DXGI_RECOVERY_FRAME_GRACE: Duration = Duration::from_secs(2);
+#[cfg(windows)]
+const DXGI_LOST_STREAK_LIMIT: usize = 2;
 
 #[cfg(windows)]
 struct DxgiRecoveryState {
@@ -79,6 +81,7 @@ struct DxgiRecoveryState {
     window_started: Option<Instant>,
     restart_pending: bool,
     fallback_pending: bool,
+    lost_streak: usize,
 }
 
 #[cfg(windows)]
@@ -89,10 +92,25 @@ impl DxgiRecoveryState {
             window_started: None,
             restart_pending: false,
             fallback_pending: false,
+            lost_streak: 0,
         }
     }
 
     fn next_attempt(&mut self) -> Option<usize> {
+        // Flaky drivers can lose access again only tens of seconds later, after the
+        // burst window below expired and reset `attempts`; count such spaced losses
+        // until a delivered frame proves the replacement capturer works.
+        if self
+            .window_started
+            .map(|started| started.elapsed() > DXGI_RECOVERY_WINDOW)
+            .unwrap_or(true)
+        {
+            self.lost_streak += 1;
+        }
+        if self.lost_streak >= DXGI_LOST_STREAK_LIMIT {
+            self.fallback_pending = true;
+            return None;
+        }
         if self
             .window_started
             .map(|started| started.elapsed() > DXGI_RECOVERY_WINDOW)
@@ -116,6 +134,12 @@ impl DxgiRecoveryState {
 
     fn take_fallback_pending(&mut self) -> bool {
         std::mem::take(&mut self.fallback_pending)
+    }
+
+    fn note_frame(&mut self) {
+        self.lost_streak = 0;
+        self.attempts = 0;
+        self.window_started = None;
     }
 }
 
@@ -642,12 +666,14 @@ fn run(vs: VideoService) -> ResultType<()> {
     #[cfg(windows)]
     if dxgi_recovery_state.lock().unwrap().take_fallback_pending() {
         c.set_gdi();
+        crate::compat_display::ensure_async();
         log::info!("dxgi recovery exhausted, fall back to gdi");
     }
     #[cfg(windows)]
     if !scrap::codec::enable_directx_capture() && !c.is_gdi() {
         log::info!("disable dxgi with option, fall back to gdi");
         c.set_gdi();
+        crate::compat_display::ensure_async();
     }
     let mut video_qos = VIDEO_QOS.lock().unwrap();
     let mut spf = video_qos.spf();
@@ -717,7 +743,14 @@ fn run(vs: VideoService) -> ResultType<()> {
     #[cfg(windows)]
     let mut try_gdi = 1;
     #[cfg(windows)]
-    log::info!("gdi: {}", c.is_gdi());
+    {
+        log::info!("gdi: {}", c.is_gdi());
+        // scrap can fall back to GDI inside Capturer::new without any log; the shared-memory
+        // IPC capturer stubs is_gdi()=true and its real loop (portable_service) owns the hook.
+        if c.is_gdi() && !last_portable_service_running {
+            crate::compat_display::ensure_async();
+        }
+    }
     #[cfg(windows)]
     start_uac_elevation_check();
 
@@ -785,6 +818,14 @@ fn run(vs: VideoService) -> ResultType<()> {
         if Encoder::use_i444(&encoder_cfg) != use_i444 {
             log::info!("switch due to i444 changed");
             bail!("SWITCH");
+        }
+        #[cfg(windows)]
+        // The compat topology makes the composition GDI-readable only; DXGI duplication
+        // still scans out without hardware-flipped window content, so pin GDI while active.
+        if crate::compat_display::is_enabled() && !c.is_gdi() && !last_portable_service_running {
+            crate::compat_display::ensure_async();
+            log::info!("compat display active, pin gdi");
+            c.set_gdi();
         }
         #[cfg(all(windows, feature = "vram"))]
         if c.is_gdi() && encoder.input_texture() {
@@ -892,6 +933,7 @@ fn run(vs: VideoService) -> ResultType<()> {
                         VRamEncoder::set_fallback_gdi(sp.name(), false);
                     }
                     try_gdi = 0;
+                    dxgi_recovery_state.lock().unwrap().note_frame();
                 }
                 Ok(())
             }
@@ -905,9 +947,13 @@ fn run(vs: VideoService) -> ResultType<()> {
                     .map(|started| started.elapsed() >= DXGI_RECOVERY_FRAME_GRACE)
                     .unwrap_or(true)
                 {
+                    if c.is_gdi() && !last_portable_service_running {
+                        crate::compat_display::ensure_async();
+                    }
                     if try_gdi > 0 && !c.is_gdi() {
                         if try_gdi > 3 {
                             c.set_gdi();
+                            crate::compat_display::ensure_async();
                             try_gdi = 0;
                             log::info!("No image, fall back to gdi");
                         }
@@ -987,12 +1033,12 @@ fn run(vs: VideoService) -> ResultType<()> {
                             bail!("SWITCH");
                         }
                         log::warn!(
-                            "dxgi access lost after {DXGI_RECOVERY_LIMIT} restarts in {} seconds, fall back to gdi: {err:?}",
-                            DXGI_RECOVERY_WINDOW.as_secs()
+                            "dxgi access lost recovery budget exhausted (burst or spaced losses), fall back to gdi: {err:?}"
                         );
                         dxgi_recovery_state.lock().unwrap().take_fallback_pending();
                     }
                     c.set_gdi();
+                    crate::compat_display::ensure_async();
                     log::info!("dxgi error, fall back to gdi: {:?}", err);
                     continue;
                 }
@@ -1588,5 +1634,45 @@ mod tests {
         assert!(refresh_allowed(false, false, true));
         // Nothing fed yet: no warm-up to lose, and a refresh can restart a stalled capturer.
         assert!(refresh_allowed(true, false, false));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn spaced_access_lost_falls_back_to_gdi() {
+        use super::{DxgiRecoveryState, DXGI_RECOVERY_WINDOW};
+        use std::time::{Duration, Instant};
+        let mut s = DxgiRecoveryState::new();
+        assert_eq!(s.next_attempt(), Some(1));
+        // The driver loses access again only after the burst window expired.
+        s.window_started =
+            Some(Instant::now() - DXGI_RECOVERY_WINDOW - Duration::from_secs(1));
+        assert_eq!(s.next_attempt(), None);
+        assert!(s.take_fallback_pending());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn delivered_frame_keeps_dxgi_recovery_available() {
+        use super::{DxgiRecoveryState, DXGI_RECOVERY_WINDOW};
+        use std::time::{Duration, Instant};
+        let mut s = DxgiRecoveryState::new();
+        assert_eq!(s.next_attempt(), Some(1));
+        s.note_frame();
+        s.window_started =
+            Some(Instant::now() - DXGI_RECOVERY_WINDOW - Duration::from_secs(1));
+        assert_eq!(s.next_attempt(), Some(1));
+        assert!(!s.take_fallback_pending());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn burst_recovery_limit_unchanged() {
+        use super::DxgiRecoveryState;
+        let mut s = DxgiRecoveryState::new();
+        assert_eq!(s.next_attempt(), Some(1));
+        assert_eq!(s.next_attempt(), Some(2));
+        assert_eq!(s.next_attempt(), Some(3));
+        assert_eq!(s.next_attempt(), None);
+        assert!(s.take_fallback_pending());
     }
 }

@@ -44,17 +44,39 @@
 
 | 项 | 值 |
 |---|---|
-| **稳定版版本** | **v2.2.0** |
-| 交付物 | `zcdesk-2.2.0-x86_64.msi`（安装器）、`zcdesk-2.2.0-x86_64.exe`（便携版） |
+| **稳定版版本** | **v2.2.1** |
+| 交付物 | `zcdesk-2.2.1-x86_64.msi`（安装器）、`zcdesk-2.2.1-x86_64.exe`（便携版） |
 | 平台 | Windows x64（Android 需显式传 `build-android=true`） |
-| Release | `v2.2.0` |
-| 已验证 | 安装 ✓ 主页版本号可见 ✓ 连接被控端（加密中继）✓ 配置干净（无登录 token）✓ |
+| Release | `v2.2.1` |
+| 已验证 | 安装 ✓ 主页版本号可见 ✓ 连接被控端 ✓ 配置干净（无登录 token）✓ 采集兼容触发链+钉 GDI+生效拓扑 ✓（`test/verify-windows.sh` 四条全 PASS、`test/verify-capture.sh` 全 PASS） |
 
 > **分不清版本怎么办**：程序主页有三处版本号——标题旁徽标、底部状态栏「就绪 vX.Y.Z」、
 > 手机顶栏应用名后。看一眼就知道装的是哪版。
 
 > 📦 **打包流程**：见 [docs/ZC-BUILD-GUIDE.md](docs/ZC-BUILD-GUIDE.md)
 > ——云端 CI 一键派发、参数说明、常见失败与修法、出包后验收清单，全部固化在仓库里。
+
+## 智策远控定制能力
+
+- **品牌化**：智策远控中文名 + ZC logo + teal 配色；中文安装向导（zh-CN 单文化 MSI）
+- **零配置接入**：ID/中继/Key 编译时内置，安装即可用（仅空时播种，不覆盖用户修改）
+- **Android 单向客户端**：只能控人、不能被控（`conn-type=outgoing`），无远程后门
+- **自主版本线 v2.x**：与上游 1.5.1 区隔；主页三处版本号常驻（标题徽标/状态栏/手机顶栏）
+- **主页方案 B**：左侧分组导航 + 在线/离线筛选 + 设备卡片渐变头图；tab 中文文字标签
+- **采集自愈（v2.2.1）**：DXGI 跨窗口连丢自动钉 GDI，修远程画面间歇性冻结/空白；
+  GDI 读不到硬件合成窗口（微信登录二维码白窗）时自动启用自带签名虚拟显示兼容采集，
+  并在兼容生效期间钉住 GDI、断连后自动重插；健康机器零影响
+- **独立登录铁律**：绝不走上游登录（见顶部铁律与知识库）
+
+## 测试与知识库
+
+| 入口 | 内容 |
+|---|---|
+| [test/README.md](test/README.md) | 常用测试/验收脚本索引（交付四条、采集五条、单元回归 7 个、二维码/拓扑探针） |
+| [kb/zcdesk-gdi-idd-capture-compat.md](kb/zcdesk-gdi-idd-capture-compat.md) | 采集兼容机制结论 + 构建/部署/验收踩坑清单 |
+| [kb/zcdesk-login-token-oss-server-deadlock.md](kb/zcdesk-login-token-oss-server-deadlock.md) | 登录 token × OSS 握手死锁事故完整教训 |
+| [docs/zc-v2.0.4-dxgi-fallback-plan.md](docs/zc-v2.0.4-dxgi-fallback-plan.md) | 采集修复诊断记录：实验矩阵、回归面、部署坑（v2.2.1 移植说明在内） |
+| [handoff/v2.2.1-handoff.md](handoff/v2.2.1-handoff.md) | v2.2.1 交接单：验收证据、部署清理、复验清单、已知限制 |
 
 <p align="center">
   <img src="res/logo-header.svg" alt="RustDesk - Your remote desktop"><br>

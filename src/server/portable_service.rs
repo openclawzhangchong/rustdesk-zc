@@ -620,6 +620,9 @@ pub mod server {
                                     dxgi_failed_times = 0;
                                     v.set_gdi();
                                 }
+                                if v.is_gdi() {
+                                    crate::compat_display::ensure_async();
+                                }
                                 utils::set_para(
                                     &shmem,
                                     CapturerPara {
@@ -659,6 +662,15 @@ pub mod server {
                     if !utils::counter_equal(shmem.as_ptr().add(ADDR_CAPTURE_FRAME_COUNTER)) {
                         std::thread::sleep(std::time::Duration::from_millis(1));
                         continue;
+                    }
+                }
+                if crate::compat_display::is_enabled()
+                    && c.as_ref().map(|c| c.is_gdi()) == Some(false)
+                {
+                    crate::compat_display::ensure_async();
+                    if let Some(c1) = c.as_mut() {
+                        log::info!("compat display active, pin gdi");
+                        c1.set_gdi();
                     }
                 }
                 match c.as_mut().map(|f| f.frame(spf)) {
@@ -706,6 +718,9 @@ pub mod server {
                             if c.as_ref().map(|c| c.is_gdi()) == Some(false) {
                                 // nog gdi
                                 dxgi_failed_times += 1;
+                            }
+                            if c.as_ref().map(|c| c.is_gdi()) == Some(true) {
+                                crate::compat_display::ensure_async();
                             }
                             if dxgi_failed_times > MAX_DXGI_FAIL_TIME {
                                 c = None;
